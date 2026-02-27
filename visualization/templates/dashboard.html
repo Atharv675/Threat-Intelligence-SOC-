@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Intelligence Dashboard</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            /* ── Background / Surface (Black & Purple Theme) ────────── */
+            --bg-primary: #050506;
+            --bg-secondary: #0a0a0c;
+            --bg-panel: rgba(13, 13, 16, 0.94);
+            --border: rgba(168, 85, 247, 0.15);
+            /* Purple-based border */
+            --border-glow: rgba(168, 85, 247, 0.40);
+            /* Purple spark */
+            --graph-bg: #030304;
+
+            /* ── SOC Semantic Threat Palette (Analytical) ──────────── */
+            --accent-critical: #ff2d55;
+            /* Crimson */
+            --accent-high: #f59e0b;
+            /* Amber */
+            --accent-medium: #eab308;
+            /* Gold */
+            --accent-low: #a855f7;
+            /* Purple (standard low) */
+            --accent-cyan: #a855f7;
+            /* Purple (main accent) */
+            --accent-blue: #7c3aed;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ff2d55;
+            --accent-violet: #8b5cf6;
+            --accent-teal: #1e1b4b;
+
+            /* ── Typography ──────────────────────────────────────────── */
+            --text-primary: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168, 85, 247, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+        }
+
+        /* ─── HEADER ─────────────────────────────────────────── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.75rem;
+            height: 58px;
+            background: rgba(11, 18, 30, 0.95);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #1e1b4b, #a855f7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: var(--text-primary);
+        }
+
+        h1 span {
+            color: var(--accent-cyan);
+        }
+
+        .header-badge {
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-green);
+            background: rgba(16, 240, 151, 0.1);
+            border: 1px solid rgba(16, 240, 151, 0.3);
+            padding: 2px 8px;
+            border-radius: 20px;
+            letter-spacing: 0.05em;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.4);
+            }
+        }
+
+        /* ─── LAYOUT ─────────────────────────────────────────── */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            /* Widened sidebar slightly */
+            grid-template-rows: 1fr;
+            /* Single row layout */
+            gap: 12px;
+            padding: 12px;
+            height: calc(100vh - 58px);
+        }
+
+        /* ─── PANELS ─────────────────────────────────────────── */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            backdrop-filter: blur(16px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.1), transparent 60%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .panel-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+        }
+
+        /* ─── GRAPH PANEL ────────────────────────────────────── */
+        .graph-panel {
+            grid-row: 1 / 2;
+            grid-column: 1 / 2;
+        }
+
+        #graph-container {
+            width: 100%;
+            height: calc(100% - 52px);
+            background: var(--graph-bg);
+            position: relative;
+            overflow: hidden;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        /* Grid lines background for graph */
+        #graph-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(56, 237, 243, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 237, 243, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .graph-toolbar {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .graph-count {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+        }
+
+        /* ─── SVG STYLES ─────────────────────────────────────── */
+        .node {
+            cursor: pointer;
+            stroke-width: 2px;
+            filter: brightness(1.05);
+            transition: filter 0.2s;
+        }
+
+        .node:hover {
+            filter: brightness(1.4) drop-shadow(0 0 8px currentColor);
+            stroke-width: 3px;
+        }
+
+        .link {
+            stroke-opacity: 0.55;
+        }
+
+        .node-label {
+            font-size: 9px;
+            font-family: 'JetBrains Mono', monospace;
+            fill: rgba(220, 240, 255, 0.75);
+            pointer-events: none;
+        }
+
+        /* Glow rings on high-risk nodes */
+        .node-glow {
+            stroke-opacity: 0.25;
+            fill: none;
+        }
+
+        /* ─── LEGEND ─────────────────────────────────────────── */
+        .legend {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(4, 8, 20, 0.88);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.72rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            backdrop-filter: blur(8px);
+        }
+
+        .legend-title {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 2px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--text-primary);
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ─── ZOOM CONTROLS ──────────────────────────────────── */
+        .zoom-controls {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .zoom-btn {
+            width: 28px;
+            height: 28px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--accent-cyan);
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(168, 85, 247, 0.25);
+        }
+
+        /* ─── RIGHT PANEL ────────────────────────────────────────── */
+        .right-panel {
+            grid-row: 1 / -1;
+            grid-column: 2 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Fixed heights for top elements to give room to timeline */
+        #overview-ring-panel {
+            flex: 0 0 auto;
+        }
+
+        .stats-panel {
+            flex: 0 0 auto;
+            border-bottom: 0;
+            /* Remove border to blend with timeline below */
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .timeline-panel {
+            flex: 1;
+            /* Timeline takes remaining space */
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border);
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            overflow: hidden;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px 12px;
+        }
+
+        .stat-card {
+            background: rgba(4, 12, 28, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-1px);
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--card-accent, var(--accent-cyan));
+            opacity: 0.7;
+        }
+
+        .stat-card.events {
+            --card-accent: #4705fa;
+        }
+
+        .stat-card.alerts {
+            --card-accent: #ff9a00;
+        }
+
+        .stat-card.detections {
+            --card-accent: #9d73f5;
+        }
+
+        .stat-card.incidents {
+            --card-accent: #ff3963;
+        }
+
+        .stat-card.events .stat-value {
+            color: #4705fa;
+        }
+
+        .stat-card.alerts .stat-value {
+            color: #ff9a00;
+        }
+
+        .stat-card.detections .stat-value {
+            color: #9d73f5;
+        }
+
+        .stat-card.incidents .stat-value {
+            color: #ff3963;
+        }
+
+        .stat-label {
+            font-size: 0.68rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+
+        /* db status */
+        .db-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px 12px;
+            font-size: 0.78rem;
+        }
+
+        .db-label {
+            color: var(--text-muted);
+        }
+
+        .db-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .db-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        /* ─── CLUSTER PANEL ──────────────────────────────────── */
+        .cluster-panel {
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .cluster-panel.active {
+            display: flex;
+        }
+
+        .cluster-panel .panel-content {
+            padding: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .cluster-ioc {
+            background: rgba(4, 12, 28, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 0.78rem;
+            word-break: break-all;
+        }
+
+        .mitre-badge {
+            display: inline-block;
+            background: rgba(157, 115, 245, 0.12);
+            color: #9d73f5;
+            border: 1px solid rgba(157, 115, 245, 0.35);
+            padding: 2px 8px;
+            margin: 3px;
+            border-radius: 4px;
+            font-size: 0.73rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        /* ── Severity Badges (SOC standard semantic colors) ───────── */
+        .severity-critical {
+            background: rgba(255, 57, 99, 0.12);
+            color: #ff3963;
+            border: 1px solid rgba(255, 57, 99, 0.40);
+        }
+
+        .severity-high {
+            background: rgba(255, 154, 0, 0.12);
+            color: #ff9a00;
+            border: 1px solid rgba(255, 154, 0, 0.40);
+        }
+
+        .severity-medium {
+            background: rgba(255, 209, 102, 0.12);
+            color: #ffd166;
+            border: 1px solid rgba(255, 209, 102, 0.40);
+        }
+
+        .severity-low {
+            background: rgba(34, 219, 135, 0.10);
+            color: #22db87;
+            border: 1px solid rgba(34, 219, 135, 0.35);
+        }
+
+        .severity-info {
+            background: rgba(56, 237, 243, 0.10);
+            color: #38edf3;
+            border: 1px solid rgba(56, 237, 243, 0.35);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 0.78rem;
+        }
+
+        .detail-row .key {
+            color: var(--text-muted);
+        }
+
+        .detail-row .val {
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .section-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-cyan);
+            margin: 10px 0 6px;
+        }
+
+        /* ─── TIMELINE PANEL ─────────────────────────────────── */
+
+        #timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 12px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        #timeline-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #timeline-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #timeline-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* ── Timeline event typology (SOC semantic palette) ───────── */
+        .timeline-event {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0 14px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.2);
+            /* Charcoal tint */
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent-cyan);
+            /* default — collection/info */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideIn 0.3s ease;
+            margin-bottom: 2px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .timeline-event:hover {
+            background: rgba(168, 85, 247, 0.08);
+            border-color: var(--border-glow);
+            transform: translateX(-2px);
+        }
+
+        /* Detection — orange (Warning) */
+        .timeline-event.detection {
+            border-left-color: var(--accent-high);
+        }
+
+        .timeline-event.detection:hover {
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        /* Incident — crimson (Critical) */
+        .timeline-event.incident {
+            border-left-color: var(--accent-critical);
+        }
+
+        .timeline-event.incident:hover {
+            background: rgba(225, 29, 72, 0.08);
+        }
+
+        /* Alert — violet */
+        .timeline-event.alert {
+            border-left-color: var(--accent-violet);
+        }
+
+        .timeline-event.alert:hover {
+            background: rgba(139, 92, 246, 0.08);
+        }
+
+        /* Correlation — amber gold */
+        .timeline-event.correlation {
+            border-left-color: var(--accent-medium);
+        }
+
+        .timeline-event.correlation:hover {
+            background: rgba(251, 191, 36, 0.08);
+        }
+
+        .event-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            line-height: 1.6;
+        }
+
+        .event-desc {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        /* ─── BUTTON ─────────────────────────────────────────── */
+        .btn {
+            background: rgba(56, 237, 243, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid var(--border-glow);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(56, 237, 243, 0.2);
+            box-shadow: 0 0 10px rgba(56, 237, 243, 0.25);
+        }
+
+        /* ─── SCROLLBAR GLOBAL ───────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* ─── EMPTY STATE ────────────────────────────────────── */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .empty-state .icon {
+            font-size: 2.5rem;
+            opacity: 0.4;
+        }
+
+        /* ─── OVERVIEW RING ──────────────────────────────────────── */
+        .ring-panel {
+            padding: 10px 14px 12px;
+        }
+
+        .ring-wrap {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .ring-svg-container {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .ring-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .ring-total {
+            font-size: 1.55rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .ring-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 3px;
+        }
+
+        .ring-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .ring-legend-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.73rem;
+        }
+
+        .ring-legend-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+        }
+
+        .ring-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 5px currentColor;
+        }
+
+        .ring-legend-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-left">
+            <div class="header-icon">🛡️</div>
+            <h1>Threat Intelligence <span>Aggregator</span></h1>
+            <span class="header-badge">SOC LIVE</span>
+        </div>
+        <div class="header-right">
+            <span class="live-dot"></span>
+            <span id="clock">--:--:--</span>
+            &nbsp;UTC
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- ── Graph Panel ── -->
+        <div class="panel graph-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="dot"></div>
+                    IOC Correlation Graph
+                </div>
+                <div class="graph-count" id="graph-count">Nodes: 0 &nbsp;|&nbsp; Edges: 0</div>
+            </div>
+
+            <div id="graph-container">
+                <!-- grid bg is CSS -->
+                <div class="legend">
+                    <div class="legend-title">MITRE Tactics</div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ff5e7a;box-shadow:0 0 6px #ff5e7a"></div>Initial
+                        Access
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ff8c42;box-shadow:0 0 6px #ff8c42"></div>Command
+                        &amp; Control
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ffe066;box-shadow:0 0 6px #ffe066"></div>
+                        Persistence
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#a855f7;box-shadow:0 0 6px #a855f7"></div>Priv.
+                        Escalation
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#7c3aed;box-shadow:0 0 6px #7c3aed"></div>Defense
+                        Evasion
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#34d399;box-shadow:0 0 6px #34d399"></div>Discovery
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#94a3b8;box-shadow:0 0 4px #94a3b8"></div>Other
+                    </div>
+                </div>
+
+                <div class="zoom-controls">
+                    <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+                    <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+                    <button class="zoom-btn" id="zoom-fit" title="Reset">⊠</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Right column ── -->
+        <div class="right-panel">
+
+            <!-- Stats -->
+            <div class="panel stats-panel" id="status-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <div class="dot"></div>Pipeline Status
+                    </div>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-card events">
+                        <div class="stat-label">Total Events</div>
+                        <div class="stat-value" id="total-events">—</div>
+                    </div>
+                    <div class="stat-card alerts">
+                        <div class="stat-label">Total Alerts</div>
+                        <div class="stat-value" id="total-alerts">—</div>
+                    </div>
+                    <div class="stat-card detections">
+                        <div class="stat-label">Detections</div>
+                        <div class="stat-value" id="total-detections">—</div>
+                    </div>
+                    <div class="stat-card incidents">
+                        <div class="stat-label">Open Incidents</div>
+                        <div class="stat-value" id="open-incidents">—</div>
+                    </div>
+                </div>
+                <div class="db-status-row">
+                    <span class="db-label">Database</span>
+                    <span class="db-value" id="db-status">
+                        <span class="db-dot" id="db-dot" style="background:#607b9e"></span>
+                        <span id="db-text">Checking…</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Cluster Details (hidden by default) -->
+            <div class="panel cluster-panel" id="cluster-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <div class="dot"></div>Cluster Details
+                    </div>
+                    <button class="btn" onclick="closeCluster()">✕ Close</button>
+                </div>
+                <div class="panel-content" id="cluster-content"></div>
+            </div>
+
+            <!-- ██ ACTIVITY TIMELINE ██ -->
+            <div class="panel timeline-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <div class="dot"></div>Activity Timeline
+                    </div>
+                    <span class="graph-count" id="event-count"></span>
+                </div>
+                <div id="timeline-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toUTCString().slice(17, 25);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ── TACTIC COLOUR MAP ──────────────────────────────
+        const TACTIC_COLORS = {
+            "Initial Access": { fill: "#ff5e7a", stroke: "#ff2050" },
+            "Execution": { fill: "#ff8c42", stroke: "#e06020" },
+            "Persistence": { fill: "#ffe066", stroke: "#d4a800" },
+            "Privilege Escalation": { fill: "#a855f7", stroke: "#7c3aed" },
+            "Defense Evasion": { fill: "#38bdf8", stroke: "#0284c7" },
+            "Credential Access": { fill: "#f472b6", stroke: "#db2777" },
+            "Discovery": { fill: "#34d399", stroke: "#059669" },
+            "Lateral Movement": { fill: "#c084fc", stroke: "#9333ea" },
+            "Collection": { fill: "#fde68a", stroke: "#b45309" },
+            "Command and Control": { fill: "#fb923c", stroke: "#c2410c" },
+            "Exfiltration": { fill: "#f87171", stroke: "#dc2626" },
+            "Impact": { fill: "#ef4444", stroke: "#991b1b" },
+            "default": { fill: "#94a3b8", stroke: "#475569" }
+        };
+
+        function getTacticColor(tactic) {
+            return TACTIC_COLORS[tactic] || TACTIC_COLORS["default"];
+        }
+
+        // ── GRAPH ─────────────────────────────────────────
+        let graphData = { nodes: [], edges: [] };
+        let svgZoom = null;
+        let svgRoot = null;
+        let simulation = null;
+
+        async function loadGraphData() {
+            try {
+                const response = await fetch('/dashboard/api/graph-data?limit=500');
+                graphData = await response.json();
+                renderGraph(graphData);
+            } catch (error) {
+                console.error('Failed to load graph data:', error);
+            }
+        }
+
+        function renderGraph(data) {
+            const container = document.getElementById('graph-container');
+            // Keep legend and zoom-controls, remove svg if exists
+            container.querySelector('svg')?.remove();
+
+            document.getElementById('graph-count').textContent =
+                `Nodes: ${(data.nodes || []).length}  |  Edges: ${(data.edges || []).length}`;
+
+            if (!data.nodes || data.nodes.length === 0) {
+                // Insert empty state before legend
+                const es = document.createElement('div');
+                es.className = 'empty-state';
+                es.innerHTML = '<div class="icon">🕸️</div><div>No graph data — run Stage 1 demo to populate data</div>';
+                container.insertBefore(es, container.querySelector('.legend'));
+                return;
+            }
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const svg = d3.select('#graph-container')
+                .insert('svg', '.legend')
+                .attr('width', width)
+                .attr('height', height)
+                .style('position', 'absolute')
+                .style('top', 0)
+                .style('left', 0);
+
+            svgRoot = svg;
+
+            // ── Defs: arrowhead + pre-compiled glow filters (OWASP A05 / perf) ──
+            const defs = svg.append('defs');
+
+            // Arrow marker
+            defs.append('marker')
+                .attr('id', 'arrow')
+                .attr('viewBox', '0 -4 10 8')
+                .attr('refX', 18).attr('refY', 0)
+                .attr('markerWidth', 6).attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .append('path').attr('d', 'M0,-4L10,0L0,4')
+                .attr('fill', 'rgba(0,200,255,0.5)');
+
+            // Three glow filter intensities — GPU compiles these once.
+            // Using these avoids recalculating drop-shadow per node per frame.
+            [['glow-high', 6], ['glow-med', 4], ['glow-low', 2]].forEach(([id, blur]) => {
+                const filter = defs.append('filter').attr('id', id)
+                    .attr('x', '-50%').attr('y', '-50%')
+                    .attr('width', '200%').attr('height', '200%');
+                filter.append('feGaussianBlur')
+                    .attr('in', 'SourceGraphic').attr('stdDeviation', blur);
+            });
+
+            const g = svg.append('g');
+
+            // Zoom behaviour
+            svgZoom = d3.zoom()
+                .scaleExtent([0.05, 12])
+                .on('zoom', (event) => g.attr('transform', event.transform));
+            svg.call(svgZoom);
+
+            // ── Controls ──────────────────────────────
+            document.getElementById('zoom-in').onclick = () => svg.transition().call(svgZoom.scaleBy, 1.4);
+            document.getElementById('zoom-out').onclick = () => svg.transition().call(svgZoom.scaleBy, 0.7);
+            document.getElementById('zoom-fit').onclick = () => svg.transition().call(svgZoom.transform, d3.zoomIdentity);
+
+            // ── Force simulation — fast decay so it stops sooner ──────────
+            simulation = d3.forceSimulation(data.nodes)
+                .alphaDecay(0.05)          // was ~0.023; now ~2× faster cooldown
+                .velocityDecay(0.55)       // more friction → less jitter
+                .force('link', d3.forceLink(data.edges).id(d => d.id)
+                    .distance(d => 80 + (1 - (d.strength || 0)) * 60))
+                .force('charge', d3.forceManyBody().strength(-350).distanceMax(300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(d => d.size + 8));
+
+            // ── Links ─────────────────────────────────
+            const link = g.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(data.edges)
+                .join('line')
+                .attr('class', 'link')
+                .attr('stroke', 'rgba(0,200,255,0.35)')
+                .attr('stroke-width', d => 0.8 + (d.strength || 0) * 2.5)
+                .attr('marker-end', 'url(#arrow)');
+
+            // ── Glow rings (high-risk only — use SVG filter ref) ─────────
+            const glow = g.append('g')
+                .selectAll('circle.glow')
+                .data(data.nodes.filter(d => d.risk_score >= 6.5))
+                .join('circle')
+                .attr('class', 'node-glow')
+                .attr('r', 14)
+                .attr('stroke', d => getTacticColor(d.mitre_tactic).fill)
+                .attr('stroke-width', 3)
+                .attr('stroke-opacity', 0.35)
+                .attr('fill', 'none');
+
+            // ── Nodes — SVG filter applied by reference (pre-compiled) ───
+            const node = g.append('g')
+                .selectAll('circle.node')
+                .data(data.nodes)
+                .join('circle')
+                .attr('class', 'node')
+                .attr('r', d => d.size)
+                .attr('fill', d => getTacticColor(d.mitre_tactic).fill)
+                .attr('stroke', d => getTacticColor(d.mitre_tactic).stroke)
+                .attr('stroke-width', 2)
+                // Reference pre-compiled filter — no per-frame recalculation
+                .attr('filter', d => d.risk_score >= 6.5 ? 'url(#glow-high)'
+                    : d.risk_score >= 4 ? 'url(#glow-med)'
+                        : 'url(#glow-low)')
+                .on('click', (event, d) => { event.stopPropagation(); loadClusterDetails(d.id); })
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            node.append('title').text(d =>
+                `${d.label}\nType: ${d.type}\nRisk: ${d.risk_score?.toFixed(2)}\nTactic: ${d.mitre_tactic}`);
+
+            // ── Labels ────────────────────────────────
+            const label = g.append('g')
+                .selectAll('text')
+                .data(data.nodes)
+                .join('text')
+                .attr('class', 'node-label')
+                .attr('text-anchor', 'middle')
+                .attr('dy', d => d.size + 12)
+                .text(d => d.label.substring(0, 16));
+
+            // ── Tick — stop simulation after settling ─────────────────
+            let _rafId = null;
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+                node.attr('cx', d => d.x).attr('cy', d => d.y);
+                glow.attr('cx', d => d.x).attr('cy', d => d.y);
+                // Only update labels if visible at current zoom
+                const k = d3.zoomTransform(svg.node()).k;
+                if (k >= 0.6) label.attr('x', d => d.x).attr('y', d => d.y);
+            });
+
+            // Fully stop the simulation when the layout has settled —
+            // no more CPU/GPU work until the user drags a node.
+            simulation.on('end', () => simulation.stop());
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x; d.fy = d.y;
+            }
+            function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null; d.fy = null;
+            }
+        }
+
+        // ── STATUS ────────────────────────────────────────
+        async function loadStatus() {
+            try {
+                const response = await fetch('/dashboard/api/status');
+                const status = await response.json();
+
+                const animCount = (id, val) => {
+                    const el = document.getElementById(id);
+                    const target = parseInt(val) || 0;
+                    const start = parseInt(el.textContent) || 0;
+                    const steps = 20;
+                    let i = 0;
+                    const timer = setInterval(() => {
+                        i++;
+                        el.textContent = Math.round(start + (target - start) * (i / steps));
+                        if (i >= steps) clearInterval(timer);
+                    }, 30);
+                };
+
+                animCount('total-events', status.collection?.total_events || 0);
+                animCount('total-alerts', status.collection?.total_alerts || 0);
+                animCount('total-detections', status.detection?.total_detections || 0);
+                animCount('open-incidents', status.incidents?.open || 0);
+
+                const healthy = status.database?.healthy;
+                document.getElementById('db-dot').style.background = healthy ? '#10f097' : '#ef4444';
+                document.getElementById('db-dot').style.boxShadow = healthy ? '0 0 8px #10f097' : '0 0 8px #ef4444';
+                document.getElementById('db-text').textContent = healthy ? '✓ Connected' : '✗ Disconnected';
+                document.getElementById('db-text').style.color = healthy ? '#34d399' : '#f87171';
+            } catch (error) {
+                console.error('Failed to load status:', error);
+            }
+        }
+
+        // ── TIMELINE ──────────────────────────────────────
+        async function loadTimeline() {
+            try {
+                const response = await fetch('/dashboard/api/timeline?limit=20');
+                const data = await response.json();
+                const container = document.getElementById('timeline-container');
+                container.innerHTML = '';
+
+                if (!data.events || data.events.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align:center;">No events yet</div>';
+                    document.getElementById('event-count').textContent = '';
+                    return;
+                }
+
+                document.getElementById('event-count').textContent = `${data.events.length} events`;
+
+                data.events.forEach(event => {
+                    const div = document.createElement('div');
+                    div.className = 'timeline-event ' + (event.event_type || '');
+                    const time = new Date(event.timestamp).toLocaleString();
+                    div.innerHTML = `
+                    <div class="event-time">${time}</div>
+                    <div class="event-desc">${event.description}</div>
+                `;
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Failed to load timeline:', error);
+            }
+        }
+
+        // ── CLUSTER DETAILS ───────────────────────────────
+        async function loadClusterDetails(clusterId) {
+            try {
+                const response = await fetch(`/dashboard/api/cluster/${clusterId}`);
+                const details = await response.json();
+
+                if (details.error) { alert('Cluster not found'); return; }
+
+                let sevClass = 'severity-low';
+                let sevColor = '#22db87';   /* Low  → teal-green   */
+                if (details.severity === 'Critical') { sevClass = 'severity-critical'; sevColor = 'var(--accent-critical)'; }
+                else if (details.severity === 'High') { sevClass = 'severity-high'; sevColor = 'var(--accent-high)'; }
+                else if (details.severity === 'Medium') { sevClass = 'severity-medium'; sevColor = 'var(--accent-medium)'; }
+                else if (details.severity === 'Info') { sevClass = 'severity-info'; sevColor = 'var(--accent-cyan)'; }
+
+                const riskPct = Math.min(100, (details.risk_score / 10) * 100).toFixed(0);
+
+                // Geo / ASN row
+                let geoRow = '';
+                if (details.geo && !details.geo.is_private) {
+                    const country = details.geo.country || 'Unknown';
+                    const org = details.asn?.organization || '';
+                    geoRow = `
+                    <div class="detail-row">
+                        <span class="key">Origin</span>
+                        <span class="val" style="display:flex;align-items:center;gap:6px;">
+                            <span>🌐</span><span>${country}${org ? ' · ' + org : ''}</span>
+                        </span>
+                    </div>`;
+                }
+
+                // Explanations card
+                const explHtml = (details.explanations || []).length
+                    ? `<div class="section-label" style="margin-top:14px">
+                            WHY THIS ALERT
+                       </div>
+                       <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);
+                                   border-radius:8px;padding:10px 12px;margin-top:6px;">
+                           ${(details.explanations).map(e =>
+                        `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;
+                                            color:var(--text-primary);line-height:1.45">
+                                   <span style="color:var(--accent-cyan);flex-shrink:0">›</span>
+                                   <span>${e}</span>
+                               </div>`
+                    ).join('')}
+                       </div>`
+                    : '';
+
+                // Summary card
+                const summaryHtml = details.summary
+                    ? `<div class="section-label" style="margin-top:14px">Analyst Summary</div>
+                       <div style="font-size:0.76rem;white-space:pre-wrap;color:var(--text-muted);
+                                   line-height:1.55;padding:8px 0">${details.summary}</div>`
+                    : '';
+
+                const content = document.getElementById('cluster-content');
+                content.innerHTML = `
+                <div class="detail-row">
+                    <span class="key">Severity</span>
+                    <span class="val"><span class="severity-badge ${sevClass}">${details.severity}</span></span>
+                </div>
+
+                <div class="detail-row" style="flex-direction:column;gap:6px;align-items:stretch">
+                    <div style="display:flex;justify-content:space-between">
+                        <span class="key">Risk Score</span>
+                        <span style="font-size:0.85rem;font-weight:700;color:${sevColor}">
+                            ${details.risk_score?.toFixed(2)} / 10
+                        </span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.08);border-radius:4px;height:6px;overflow:hidden">
+                        <div style="width:${riskPct}%;height:100%;background:${sevColor};
+                                    border-radius:4px;transition:width .5s ease"></div>
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <span class="key">Events</span>
+                    <span class="val">${details.event_count}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="key">Corr. Strength</span>
+                    <span class="val">${((details.correlation_strength || 0) * 100).toFixed(0)}%</span>
+                </div>
+                ${geoRow}
+
+                <div class="section-label" style="margin-top:14px">IOCs</div>
+                ${(details.iocs || []).map(ioc => `
+                    <div class="cluster-ioc">
+                        <strong style="color:var(--text-muted)">${ioc.type}:</strong>
+                        <span style="color:var(--text-primary);word-break:break-all">${ioc.value}</span><br>
+                        <span style="font-size:0.72rem;color:var(--text-muted)">
+                            Source: ${ioc.source} &nbsp;|&nbsp; Confidence: ${(ioc.confidence * 100).toFixed(0)}%
+                        </span>
+                    </div>
+                `).join('')}
+
+                ${(details.mitre_techniques || []).length ? `
+                <div class="section-label" style="margin-top:14px">MITRE ATT&amp;CK</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+                    ${details.mitre_techniques.map(t => `<span class="mitre-badge">${t}</span>`).join('')}
+                </div>` : ''}
+
+                ${explHtml}
+                ${summaryHtml}
+                `;
+
+                document.getElementById('status-panel').style.display = 'none';
+                document.getElementById('cluster-panel').classList.add('active');
+            } catch (error) {
+                console.error('Failed to load cluster details:', error);
+            }
+        }
+
+        function closeCluster() {
+            document.getElementById('cluster-panel').classList.remove('active');
+            document.getElementById('status-panel').style.display = '';
+        }
+
+        // ── OVERVIEW RING ──────────────────────────────────
+        // ── BOOT ──────────────────────────────────────────
+        async function loadDashboard() {
+            await Promise.all([loadGraphData(), loadStatus(), loadTimeline()]);
+        }
+
+        loadDashboard();
+        setInterval(loadStatus, 30000);
+        setInterval(loadTimeline, 30000);
+    </script>
+</body>
+
+</html>
