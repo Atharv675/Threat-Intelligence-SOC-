@@ -7,7 +7,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0+-brightgreen.svg)](https://www.mongodb.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 📋 Overview
+##  Overview
 
 A production-ready threat intelligence aggregation platform that collects IOCs from OSINT sources, performs intelligent correlation and MITRE ATT&CK mapping, detects threats in operational logs, manages security incidents, and visualizes threat landscapes through a professional interactive dashboard.
 
