@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: threat-intel-mongodb
+    ports:
+      - "27017:27017"  # Expose port for backward compatibility with local run scripts (e.g. demo.py)
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: threat-intel-web
+    ports:
+      - "8000:8000"  # Expose FastAPI dashboard and API port
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-threat_intel}
+      - ALIENVAULT_API_KEY=${ALIENVAULT_API_KEY}
+      - ABUSEDB_API_KEY=${ABUSEDB_API_KEY}
+      - RATE_LIMIT_DEFAULT=${RATE_LIMIT_DEFAULT:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

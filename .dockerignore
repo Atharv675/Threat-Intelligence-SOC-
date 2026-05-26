@@ -1,0 +1,29 @@
+# Exclude version control and IDE files
+.git
+.gitignore
+.idea
+.vscode
+.antigravityignore
+
+# Exclude virtual environments
+.venv
+venv
+env
+
+# Exclude Python bytecode and cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+
+# Exclude local configuration and logs
+.env
+*.log
+demo_output.log
+demo_output.txt
+demo_verify.log
+demo_verify_2.log
+
+# Exclude database files/caches if any
+data/

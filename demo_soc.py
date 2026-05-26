@@ -117,6 +117,14 @@ async def demo_stage2() -> None:
             ("nginx", _make_nginx_log("127.0.0.1")),     # loopback – safe
         ]
 
+        # Add stateful behavioral test sequence (3 failed logins from same clean IP)
+        # This will trigger the SSH Brute Force behavioral rule!
+        SAMPLE_LOGS += [
+            ("auth",  _make_auth_log("192.168.1.100")),
+            ("auth",  _make_auth_log("192.168.1.100")),
+            ("auth",  _make_auth_log("192.168.1.100")),  # Third failed login triggers T1110
+        ]
+
         # ── PART 1: Log Ingestion & Detection ────────────────────────────────
         print("─" * 80)
         print("PART 1: LOG INGESTION & DETECTION")

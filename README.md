@@ -16,7 +16,7 @@ A production-ready threat intelligence aggregation platform that collects IOCs f
 ✅ **OSINT Collection** - Integrate threat intelligence from AlienVault OTX, Abuse.ch, and OpenPhish  
 ✅ **9-Stage Pipeline** - Normalize → Enrich → Correlate → MITRE Map → Risk Score → Generate Alerts → Summarize → Store  
 ✅ **Log Ingestion** - Parse and validate auth, nginx, and DNS logs with strict schema validation  
-✅ **Detection Engine** - Match log events against stored IOCs with confidence scoring  
+✅ **Detection Engine** - Stateful behavioral heuristics (SSH Brute Force, Web Active Scanning, DNS DGA queries) and static IOC matching with confidence scoring  
 ✅ **Incident Lifecycle** - Full incident management (create, update status, add notes, assign analysts)  
 ✅ **Interactive Dashboard** - Professional Black & Purple D3.js force-directed node graph with zoom, pan, and click interactions  
 ✅ **OWASP Security** - Rate limiting, input validation, sanitization, no SQL injection, structured logging  
@@ -216,7 +216,19 @@ This will:
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Access the platform:
+### Option 3: Docker & Docker Compose (Containerized Production)
+
+Make sure you have Docker Desktop and Compose installed.
+
+```bash
+# Start MongoDB and FastAPI services in the background
+docker-compose up -d
+```
+
+*Note: The MongoDB container automatically forwards port `27017:27017` to your host, ensuring that local demo scripts in Option 1 still connect and run seamlessly.*
+
+### 🌐 Access the Platform
+
 - **Interactive Dashboard**: http://localhost:8000/dashboard
 - **API Documentation**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
@@ -329,29 +341,6 @@ SOC/
 ├── .gitignore
 └── README.md
 ```
-
-## 🎓 Resume Summary
-
-### Threat Intelligence Aggregator - Full-Stack Security Platform
-
-**Technologies**: Python | FastAPI | MongoDB | D3.js | Docker | OWASP Security
-
-**Highlights**:
-- Built production-ready OSINT threat intelligence aggregator with 9-stage ML pipeline
-- Implemented graph-based correlation engine linking 500+ IOCs with 85% accuracy
-- Integrated MITRE ATT&CK framework for automatic tactic/technique mapping
-- Designed detection engine matching operational logs (auth, nginx, DNS) against threat databases
-- Created incident lifecycle management system with CRUD operations and status tracking
-- Developed interactive D3.js dashboard with a professional Black & Purple aesthetic, featuring force-directed graphs, zoom/pan, and streamlined sidebars
-- Enforced OWASP security: rate limiting, Pydantic validation, input sanitization, repository pattern
-- Achieved 100% test coverage on critical security modules
-
-**Key Metrics**:
-- 3 OSINT integrations (AlienVault, Abuse.ch, OpenPhish)
-- 4 MongoDB collections with optimized indexes
-- 20 RESTful API endpoints with full OpenAPI documentation
-- Real-time visualization of 500+ threat nodes
-- Sub-second detection latency on log ingestion
 
 ## 📈 Performance
 
