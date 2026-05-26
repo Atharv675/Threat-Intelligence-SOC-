@@ -1,17 +1,18 @@
 # Threat Intelligence Aggregator
 
-> 🛡️ Secure OSINT threat intelligence platform with MITRE ATT&CK mapping, detection engine, incident management, and interactive visualization dashboard.
+> Secure OSINT threat intelligence platform with MITRE ATT&CK mapping, detection engine, incident management, and interactive visualization dashboard.
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0+-brightgreen.svg)](https://www.mongodb.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 📋 Overview
+##  Overview
 
 A production-ready threat intelligence aggregation platform that collects IOCs from OSINT sources, performs intelligent correlation and MITRE ATT&CK mapping, detects threats in operational logs, manages security incidents, and visualizes threat landscapes through a professional interactive dashboard.
 
 ### Key Features
+
 
 ✅ **OSINT Collection** - Integrate threat intelligence from AlienVault OTX, Abuse.ch, and OpenPhish  
 ✅ **9-Stage Pipeline** - Normalize → Enrich → Correlate → MITRE Map → Risk Score → Generate Alerts → Summarize → Store  
@@ -21,8 +22,18 @@ A production-ready threat intelligence aggregation platform that collects IOCs f
 ✅ **Interactive Dashboard** - Professional Black & Purple D3.js force-directed node graph with zoom, pan, and click interactions  
 ✅ **OWASP Security** - Rate limiting, input validation, sanitization, no SQL injection, structured logging  
 ✅ **MongoDB Repository Pattern** - Clean architecture with no direct database access  
+=======
+-> **OSINT Collection** - Integrate threat intelligence from AlienVault OTX, Abuse.ch, and OpenPhish  
+ ->**9-Stage Pipeline** - Normalize → Enrich → Correlate → MITRE Map → Risk Score → Generate Alerts → Summarize → Store 
+-> **Log Ingestion** - Parse and validate auth, nginx, and DNS logs with strict schema validation  
+->**Detection Engine** - Match log events against stored IOCs with confidence scoring  
+-> **Incident Lifecycle** - Full incident management (create, update status, add notes, assign analysts)  
+->**Interactive Dashboard** - Professional Black & Purple D3.js force-directed node graph with zoom, pan, and click interactions  
+-> **OWASP Security** - Rate limiting, input validation, sanitization, no SQL injection, structured logging  
+->**MongoDB Repository Pattern** - Clean architecture with no direct database access  
 
-## 🏗️ Architecture
+
+## Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -70,7 +81,7 @@ A production-ready threat intelligence aggregation platform that collects IOCs f
                            └───────────────────────────────┘
 ```
 
-## 🔒 Security Design
+##  Security Design
 
 ### OWASP Compliance
 
@@ -89,7 +100,7 @@ A production-ready threat intelligence aggregation platform that collects IOCs f
 3. **Dependency Inversion**: All database operations through repositories
 4. **Fail-Safe Defaults**: Malformed inputs rejected, not processed
 
-## 📦 Installation
+##  Installation
 
 ### Prerequisites
 
@@ -144,7 +155,7 @@ RATE_LIMIT_DEFAULT=60
 - **AlienVault OTX**: Sign up at https://otx.alienvault.com/
 - **AbuseIPDB**: Sign up at https://www.abuseipdb.com/
 
-## 🗄️ MongoDB Setup
+##  MongoDB Setup
 
 ### Install MongoDB
 
@@ -181,7 +192,7 @@ mongosh
 # Should connect successfully
 ```
 
-## 🚀 Running the Platform
+##  Running the Platform
 
 ### Option 1: Demo Scripts (Recommended for Testing)
 
@@ -262,7 +273,7 @@ docker-compose up -d
 - `GET /dashboard/api/status` - Pipeline status
 - `GET /dashboard/api/cluster/{id}` - Cluster details
 
-## 📊 Dashboard Features
+## Dashboard Features
 
 ### Interactive Node Graph
 - **Force-Directed Layout**: D3.js physics simulation
@@ -292,7 +303,7 @@ docker-compose up -d
 - Alert explanations
 - Analyst summaries
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 SOC/
@@ -342,7 +353,18 @@ SOC/
 └── README.md
 ```
 
+
 ## 📈 Performance
+=======
+**Key Metrics**:
+- 3 OSINT integrations (AlienVault, Abuse.ch, OpenPhish)
+- 4 MongoDB collections with optimized indexes
+- 20 RESTful API endpoints with full OpenAPI documentation
+- Real-time visualization of 500+ threat nodes
+- Sub-second detection latency on log ingestion
+
+##  Performance
+
 
 - **Collection Speed**: ~100 IOCs/minute from OSINT sources
 - **Detection Latency**: <100ms per log event
@@ -350,7 +372,7 @@ SOC/
 - **Database Queries**: <50ms p95 with indexes
 - **API Response Time**: <200ms p95
 
-## 🧪 Testing
+##  Testing
 
 ```bash
 # Run all demos
@@ -361,7 +383,7 @@ python demo_soc.py      # Stage 2: SOC Operations
 curl http://localhost:8000/health
 ```
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### MongoDB Connection Failed
 ```bash
@@ -387,7 +409,7 @@ uvicorn main:app --reload
 tail -f logs/app.log
 ```
 
-## 📝 Environment Variables Reference
+##  Environment Variables Reference
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
@@ -398,7 +420,7 @@ tail -f logs/app.log
 | `LOG_LEVEL` | Logging level (DEBUG/INFO/WARNING) | `INFO` | No |
 | `RATE_LIMIT_DEFAULT` | Requests per minute | `60` | No |
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions welcome! Please follow security best practices.
 
@@ -406,7 +428,7 @@ Contributions welcome! Please follow security best practices.
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - **MITRE ATT&CK** - Threat framework
 - **AlienVault OTX** - Open threat intelligence
@@ -415,7 +437,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **D3.js** - Data visualization
 - **FastAPI** - Modern Python web framework
 
-## 📧 Contact
+##  Contact
 
 For questions or support, please open an issue on GitHub.
 
