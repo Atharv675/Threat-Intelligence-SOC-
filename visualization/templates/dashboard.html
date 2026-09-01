@@ -6,43 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Threat Intelligence Dashboard</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         :root {
-            /* ── Background / Surface (Black & Purple Theme) ────────── */
-            --bg-primary: #050506;
-            --bg-secondary: #0a0a0c;
-            --bg-panel: rgba(13, 13, 16, 0.94);
-            --border: rgba(168, 85, 247, 0.15);
-            /* Purple-based border */
-            --border-glow: rgba(168, 85, 247, 0.40);
-            /* Purple spark */
-            --graph-bg: #030304;
+            /* ── Surfaces ─────────────────────────────────────────── */
+            --bg: #0a0c10;
+            --bg-surface: #101319;
+            --bg-inset: #151922;
+            --bg-hover: #1a1f29;
+            --graph-bg: #0a0c10;
+            --border: #212630;
+            --border-strong: #2c3340;
 
-            /* ── SOC Semantic Threat Palette (Analytical) ──────────── */
-            --accent-critical: #ff2d55;
-            /* Crimson */
-            --accent-high: #f59e0b;
-            /* Amber */
-            --accent-medium: #eab308;
-            /* Gold */
-            --accent-low: #a855f7;
-            /* Purple (standard low) */
-            --accent-cyan: #a855f7;
-            /* Purple (main accent) */
-            --accent-blue: #7c3aed;
-            --accent-green: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-red: #ff2d55;
-            --accent-violet: #8b5cf6;
-            --accent-teal: #1e1b4b;
+            /* ── Text ─────────────────────────────────────────────── */
+            --text: #e4e7eb;
+            --text-secondary: #8b93a1;
+            --text-tertiary: #565e6b;
 
-            /* ── Typography ──────────────────────────────────────────── */
-            --text-primary: #f8fafc;
-            --text-muted: #94a3b8;
-            --text-dim: #475569;
+            /* ── Single functional accent (interactive / selection) ── */
+            --accent: #5b8def;
+            --accent-soft: rgba(91, 141, 239, 0.12);
+
+            /* ── Severity ladder (semantic, used only for severity) ── */
+            --sev-critical: #ef5a5f;
+            --sev-high: #ef9a4d;
+            --sev-medium: #e0b73f;
+            --sev-low: #5b8def;
+            --sev-info: #7d8590;
+            --ok: #3fb950;
+
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
         }
 
         * {
@@ -52,14 +48,12 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
             height: 100vh;
             overflow: hidden;
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168, 85, 247, 0.05) 0%, transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+            font-size: 14px;
         }
 
         /* ─── HEADER ─────────────────────────────────────────── */
@@ -67,72 +61,64 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.75rem;
-            height: 58px;
-            background: rgba(11, 18, 30, 0.95);
+            padding: 0 20px;
+            height: 52px;
+            background: var(--bg-surface);
             border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(12px);
-            position: relative;
-            z-index: 10;
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 12px;
         }
 
-        .header-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #1e1b4b, #a855f7);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        .mark {
+            width: 22px;
+            height: 22px;
+            color: var(--text);
+            flex-shrink: 0;
         }
 
         h1 {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            letter-spacing: 0.03em;
-            color: var(--text-primary);
+            color: var(--text);
         }
 
-        h1 span {
-            color: var(--accent-cyan);
+        h1 .dim {
+            color: var(--text-tertiary);
+            font-weight: 500;
         }
 
         .header-badge {
-            font-size: 0.7rem;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--accent-green);
-            background: rgba(16, 240, 151, 0.1);
-            border: 1px solid rgba(16, 240, 151, 0.3);
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            color: var(--ok);
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.25);
             padding: 2px 8px;
-            border-radius: 20px;
-            letter-spacing: 0.05em;
+            border-radius: 3px;
+            letter-spacing: 0.02em;
         }
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 8px;
             font-size: 0.78rem;
-            color: var(--text-muted);
-            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
         }
 
         .live-dot {
             display: inline-block;
             width: 6px;
             height: 6px;
-            background: var(--accent-green);
+            background: var(--ok);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-green);
-            animation: pulse 2s infinite;
+            animation: pulse 2.4s ease-in-out infinite;
         }
 
         @keyframes pulse {
@@ -140,12 +126,10 @@
             0%,
             100% {
                 opacity: 1;
-                transform: scale(1);
             }
 
             50% {
-                opacity: 0.5;
-                transform: scale(1.4);
+                opacity: 0.35;
             }
         }
 
@@ -153,63 +137,33 @@
         .container {
             display: grid;
             grid-template-columns: 1fr 340px;
-            /* Widened sidebar slightly */
             grid-template-rows: 1fr;
-            /* Single row layout */
-            gap: 12px;
-            padding: 12px;
-            height: calc(100vh - 58px);
+            gap: 1px;
+            background: var(--border);
+            height: calc(100vh - 52px);
         }
 
         /* ─── PANELS ─────────────────────────────────────────── */
         .panel {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            backdrop-filter: blur(16px);
+            background: var(--bg-surface);
             overflow: hidden;
             position: relative;
-        }
-
-        .panel::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 12px;
-            padding: 1px;
-            background: linear-gradient(135deg, rgba(148, 163, 184, 0.1), transparent 60%);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            mask-composite: exclude;
-            pointer-events: none;
         }
 
         .panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.9rem 1.25rem;
+            padding: 11px 16px;
             border-bottom: 1px solid var(--border);
         }
 
         .panel-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
+            font-size: 0.72rem;
             font-weight: 600;
-            color: var(--accent-cyan);
-            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
             text-transform: uppercase;
-        }
-
-        .panel-title .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-cyan);
-            box-shadow: 0 0 8px var(--accent-cyan);
         }
 
         /* ─── GRAPH PANEL ────────────────────────────────────── */
@@ -220,64 +174,28 @@
 
         #graph-container {
             width: 100%;
-            height: calc(100% - 52px);
+            height: calc(100% - 45px);
             background: var(--graph-bg);
             position: relative;
             overflow: hidden;
-            border-bottom-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-        }
-
-        /* Grid lines background for graph */
-        #graph-container::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(56, 237, 243, 0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(56, 237, 243, 0.04) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
-
-        .graph-toolbar {
-            display: flex;
-            gap: 0.5rem;
         }
 
         .graph-count {
             font-size: 0.72rem;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-muted);
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
         }
 
         /* ─── SVG STYLES ─────────────────────────────────────── */
         .node {
             cursor: pointer;
-            stroke-width: 2px;
-            filter: brightness(1.05);
-            transition: filter 0.2s;
-        }
-
-        .node:hover {
-            filter: brightness(1.4) drop-shadow(0 0 8px currentColor);
-            stroke-width: 3px;
-        }
-
-        .link {
-            stroke-opacity: 0.55;
         }
 
         .node-label {
             font-size: 9px;
-            font-family: 'JetBrains Mono', monospace;
-            fill: rgba(220, 240, 255, 0.75);
+            font-family: var(--font-mono);
+            fill: var(--text-tertiary);
             pointer-events: none;
-        }
-
-        /* Glow rings on high-risk nodes */
-        .node-glow {
-            stroke-opacity: 0.25;
-            fill: none;
         }
 
         /* ─── LEGEND ─────────────────────────────────────────── */
@@ -285,36 +203,35 @@
             position: absolute;
             bottom: 12px;
             left: 12px;
-            background: rgba(4, 8, 20, 0.88);
+            background: var(--bg-surface);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 14px;
+            border-radius: 6px;
+            padding: 10px 12px;
             font-size: 0.72rem;
             display: flex;
             flex-direction: column;
             gap: 5px;
-            backdrop-filter: blur(8px);
         }
 
         .legend-title {
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             font-weight: 600;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 2px;
+            letter-spacing: 0.06em;
+            margin-bottom: 3px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
             gap: 7px;
-            color: var(--text-primary);
+            color: var(--text-secondary);
         }
 
         .legend-color {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -326,26 +243,40 @@
             right: 12px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 1px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
         }
 
         .zoom-btn {
             width: 28px;
             height: 28px;
-            background: rgba(168, 85, 247, 0.1);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--accent-cyan);
-            font-size: 1rem;
+            background: var(--bg-surface);
+            border: none;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-family: var(--font-sans);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .zoom-btn:last-child {
+            border-bottom: none;
         }
 
         .zoom-btn:hover {
-            background: rgba(168, 85, 247, 0.25);
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .zoom-btn svg {
+            width: 13px;
+            height: 13px;
         }
 
         /* ─── RIGHT PANEL ────────────────────────────────────────── */
@@ -354,143 +285,90 @@
             grid-column: 2 / 3;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 1px;
             overflow: hidden;
             height: 100%;
-        }
-
-        /* Fixed heights for top elements to give room to timeline */
-        #overview-ring-panel {
-            flex: 0 0 auto;
+            background: var(--border);
         }
 
         .stats-panel {
             flex: 0 0 auto;
-            border-bottom: 0;
-            /* Remove border to blend with timeline below */
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
         }
 
         .timeline-panel {
             flex: 1;
-            /* Timeline takes remaining space */
             min-height: 0;
             display: flex;
             flex-direction: column;
-            border-top: 1px solid var(--border);
-            border-top-left-radius: 0;
-            border-top-right-radius: 0;
             overflow: hidden;
         }
 
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            padding: 10px 12px;
+            gap: 1px;
+            background: var(--border);
         }
 
         .stat-card {
-            background: rgba(4, 12, 28, 0.7);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
-            position: relative;
-            overflow: hidden;
-            transition: border-color 0.2s, transform 0.2s;
+            background: var(--bg-surface);
+            padding: 12px 14px;
         }
 
-        .stat-card:hover {
-            border-color: var(--border-glow);
-            transform: translateY(-1px);
+        .stat-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
         }
 
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--card-accent, var(--accent-cyan));
-            opacity: 0.7;
-        }
-
-        .stat-card.events {
-            --card-accent: #4705fa;
-        }
-
-        .stat-card.alerts {
-            --card-accent: #ff9a00;
-        }
-
-        .stat-card.detections {
-            --card-accent: #9d73f5;
-        }
-
-        .stat-card.incidents {
-            --card-accent: #ff3963;
-        }
-
-        .stat-card.events .stat-value {
-            color: #4705fa;
-        }
-
-        .stat-card.alerts .stat-value {
-            color: #ff9a00;
-        }
-
-        .stat-card.detections .stat-value {
-            color: #9d73f5;
-        }
-
-        .stat-card.incidents .stat-value {
-            color: #ff3963;
+        .stat-card svg {
+            width: 13px;
+            height: 13px;
+            color: var(--text-tertiary);
         }
 
         .stat-label {
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 500;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 6px;
+            letter-spacing: 0.06em;
         }
 
         .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-primary);
+            font-size: 1.6rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            color: var(--text);
             line-height: 1;
         }
-
 
         /* db status */
         .db-status-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 12px 12px;
+            padding: 10px 14px;
             font-size: 0.78rem;
+            border-top: 1px solid var(--border);
         }
 
         .db-label {
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .db-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
+            font-family: var(--font-mono);
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
         .db-dot {
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
         }
 
@@ -506,15 +384,15 @@
         }
 
         .cluster-panel .panel-content {
-            padding: 12px;
+            padding: 14px 16px;
             overflow-y: auto;
             flex: 1;
         }
 
         .cluster-ioc {
-            background: rgba(4, 12, 28, 0.7);
+            background: var(--bg-inset);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 5px;
             padding: 8px 10px;
             margin-bottom: 6px;
             font-size: 0.78rem;
@@ -523,79 +401,274 @@
 
         .mitre-badge {
             display: inline-block;
-            background: rgba(157, 115, 245, 0.12);
-            color: #9d73f5;
-            border: 1px solid rgba(157, 115, 245, 0.35);
+            background: var(--bg-inset);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-strong);
             padding: 2px 8px;
-            margin: 3px;
+            margin: 0 4px 4px 0;
             border-radius: 4px;
-            font-size: 0.73rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
         }
 
         .severity-badge {
             display: inline-block;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 0.78rem;
+            padding: 2px 9px;
+            border-radius: 4px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
 
-        /* ── Severity Badges (SOC standard semantic colors) ───────── */
         .severity-critical {
-            background: rgba(255, 57, 99, 0.12);
-            color: #ff3963;
-            border: 1px solid rgba(255, 57, 99, 0.40);
+            background: rgba(239, 90, 95, 0.12);
+            color: var(--sev-critical);
+            border: 1px solid rgba(239, 90, 95, 0.3);
         }
 
         .severity-high {
-            background: rgba(255, 154, 0, 0.12);
-            color: #ff9a00;
-            border: 1px solid rgba(255, 154, 0, 0.40);
+            background: rgba(239, 154, 77, 0.12);
+            color: var(--sev-high);
+            border: 1px solid rgba(239, 154, 77, 0.3);
         }
 
         .severity-medium {
-            background: rgba(255, 209, 102, 0.12);
-            color: #ffd166;
-            border: 1px solid rgba(255, 209, 102, 0.40);
+            background: rgba(224, 183, 63, 0.12);
+            color: var(--sev-medium);
+            border: 1px solid rgba(224, 183, 63, 0.3);
         }
 
         .severity-low {
-            background: rgba(34, 219, 135, 0.10);
-            color: #22db87;
-            border: 1px solid rgba(34, 219, 135, 0.35);
+            background: rgba(91, 141, 239, 0.12);
+            color: var(--sev-low);
+            border: 1px solid rgba(91, 141, 239, 0.3);
         }
 
         .severity-info {
-            background: rgba(56, 237, 243, 0.10);
-            color: #38edf3;
-            border: 1px solid rgba(56, 237, 243, 0.35);
+            background: rgba(125, 133, 144, 0.12);
+            color: var(--sev-info);
+            border: 1px solid rgba(125, 133, 144, 0.3);
         }
 
         .detail-row {
             display: flex;
             justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            font-size: 0.78rem;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.79rem;
         }
 
         .detail-row .key {
-            color: var(--text-muted);
+            color: var(--text-tertiary);
         }
 
         .detail-row .val {
-            color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
+            color: var(--text);
+            font-family: var(--font-mono);
         }
 
         .section-label {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--accent-cyan);
-            margin: 10px 0 6px;
+            letter-spacing: 0.06em;
+            color: var(--text-tertiary);
+            margin: 14px 0 6px;
+        }
+
+        /* ─── TABS ───────────────────────────────────────────── */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            background: var(--bg-inset);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .tab-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-tertiary);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 4px 11px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-secondary);
+        }
+
+        .tab-btn.active {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .tab-view {
+            display: none;
+        }
+
+        .tab-view.active {
+            display: block;
+        }
+
+        #view-incidents {
+            padding: 12px 14px 14px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        /* ─── INCIDENT OVERVIEW ──────────────────────────────── */
+        .mini-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .mini-stat {
+            background: var(--bg-surface);
+            padding: 9px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mini-stat-label {
+            font-size: 0.62rem;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mini-stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .empty-mini {
+            font-size: 0.76rem;
+            color: var(--text-tertiary);
+            padding: 4px 0 8px;
+        }
+
+        .sev-bar {
+            display: flex;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: var(--bg-inset);
+        }
+
+        .mini-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 10px;
+            margin-top: 8px;
+        }
+
+        .mini-legend-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.74rem;
+        }
+
+        .mini-legend-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }
+
+        .mini-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .mini-legend-val {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .bar-row {
+            display: grid;
+            grid-template-columns: 84px 1fr 22px;
+            align-items: center;
+            gap: 8px;
+            padding: 3px 0;
+        }
+
+        .bar-label {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bar-track {
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-inset);
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .bar-val {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            text-align: right;
+        }
+
+        .analyst-row {
+            display: grid;
+            grid-template-columns: 84px 1fr 22px;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .analyst-name {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .analyst-bar {
+            display: flex;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: var(--bg-inset);
+        }
+
+        .analyst-total {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            text-align: right;
         }
 
         /* ─── TIMELINE PANEL ─────────────────────────────────── */
@@ -618,112 +691,72 @@
         }
 
         #timeline-container::-webkit-scrollbar-thumb {
-            background: var(--border);
+            background: var(--border-strong);
             border-radius: 4px;
         }
 
-        /* ── Timeline event typology (SOC semantic palette) ───────── */
         .timeline-event {
             display: grid;
             grid-template-columns: auto 1fr;
-            gap: 0 14px;
-            padding: 10px 14px;
-            border-radius: 8px;
-            background: rgba(30, 41, 59, 0.2);
-            /* Charcoal tint */
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--accent-cyan);
-            /* default — collection/info */
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: slideIn 0.3s ease;
-            margin-bottom: 2px;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            gap: 0 12px;
+            padding: 9px 12px;
+            border-radius: 5px;
+            background: var(--bg-inset);
+            border-left: 2px solid var(--text-tertiary);
+            transition: background 0.15s;
         }
 
         .timeline-event:hover {
-            background: rgba(168, 85, 247, 0.08);
-            border-color: var(--border-glow);
-            transform: translateX(-2px);
+            background: var(--bg-hover);
         }
 
-        /* Detection — orange (Warning) */
         .timeline-event.detection {
-            border-left-color: var(--accent-high);
+            border-left-color: var(--sev-high);
         }
 
-        .timeline-event.detection:hover {
-            background: rgba(245, 158, 11, 0.08);
-        }
-
-        /* Incident — crimson (Critical) */
         .timeline-event.incident {
-            border-left-color: var(--accent-critical);
+            border-left-color: var(--sev-critical);
         }
 
-        .timeline-event.incident:hover {
-            background: rgba(225, 29, 72, 0.08);
-        }
-
-        /* Alert — violet */
         .timeline-event.alert {
-            border-left-color: var(--accent-violet);
+            border-left-color: var(--sev-low);
         }
 
-        .timeline-event.alert:hover {
-            background: rgba(139, 92, 246, 0.08);
-        }
-
-        /* Correlation — amber gold */
         .timeline-event.correlation {
-            border-left-color: var(--accent-medium);
-        }
-
-        .timeline-event.correlation:hover {
-            background: rgba(251, 191, 36, 0.08);
+            border-left-color: var(--sev-medium);
         }
 
         .event-time {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-mono);
             font-size: 0.7rem;
-            color: var(--text-muted);
+            color: var(--text-tertiary);
             white-space: nowrap;
             line-height: 1.6;
         }
 
         .event-desc {
             font-size: 0.8rem;
-            color: var(--text-primary);
+            color: var(--text-secondary);
             line-height: 1.5;
         }
 
         /* ─── BUTTON ─────────────────────────────────────────── */
         .btn {
-            background: rgba(56, 237, 243, 0.1);
-            color: var(--accent-cyan);
-            border: 1px solid var(--border-glow);
-            padding: 4px 12px;
-            border-radius: 6px;
+            background: var(--bg-inset);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-strong);
+            padding: 4px 10px;
+            border-radius: 5px;
             cursor: pointer;
             font-size: 0.75rem;
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-sans);
             font-weight: 500;
-            transition: background 0.2s, box-shadow 0.2s;
+            transition: background 0.15s, color 0.15s;
         }
 
         .btn:hover {
-            background: rgba(56, 237, 243, 0.2);
-            box-shadow: 0 0 10px rgba(56, 237, 243, 0.25);
+            background: var(--bg-hover);
+            color: var(--text);
         }
 
         /* ─── SCROLLBAR GLOBAL ───────────────────────────────── */
@@ -736,7 +769,7 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--border);
+            background: var(--border-strong);
             border-radius: 4px;
         }
 
@@ -747,91 +780,15 @@
             align-items: center;
             justify-content: center;
             height: 100%;
-            gap: 8px;
-            color: var(--text-muted);
-            font-size: 0.85rem;
+            gap: 10px;
+            color: var(--text-tertiary);
+            font-size: 0.82rem;
         }
 
-        .empty-state .icon {
-            font-size: 2.5rem;
-            opacity: 0.4;
-        }
-
-        /* ─── OVERVIEW RING ──────────────────────────────────────── */
-        .ring-panel {
-            padding: 10px 14px 12px;
-        }
-
-        .ring-wrap {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .ring-svg-container {
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .ring-center {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-
-        .ring-total {
-            font-size: 1.55rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-primary);
-            line-height: 1;
-        }
-
-        .ring-label {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-top: 3px;
-        }
-
-        .ring-legend {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            flex: 1;
-        }
-
-        .ring-legend-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.73rem;
-        }
-
-        .ring-legend-name {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-muted);
-        }
-
-        .ring-legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            box-shadow: 0 0 5px currentColor;
-        }
-
-        .ring-legend-val {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            font-size: 0.78rem;
+        .empty-state svg {
+            width: 32px;
+            height: 32px;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -839,14 +796,18 @@
 <body>
     <header>
         <div class="header-left">
-            <div class="header-icon">🛡️</div>
-            <h1>Threat Intelligence <span>Aggregator</span></h1>
-            <span class="header-badge">SOC LIVE</span>
+            <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2.5 4.5 5.5v6c0 5 3.2 8.4 7.5 10 4.3-1.6 7.5-5 7.5-10v-6L12 2.5Z" />
+                <path d="m9 12 2 2 4-4.5" />
+            </svg>
+            <h1>Threat Intelligence <span class="dim">Aggregator</span></h1>
+            <span class="header-badge">LIVE</span>
         </div>
         <div class="header-right">
             <span class="live-dot"></span>
             <span id="clock">--:--:--</span>
-            &nbsp;UTC
+            <span>UTC</span>
         </div>
     </header>
 
@@ -854,49 +815,55 @@
         <!-- ── Graph Panel ── -->
         <div class="panel graph-panel">
             <div class="panel-header">
-                <div class="panel-title">
-                    <div class="dot"></div>
-                    IOC Correlation Graph
-                </div>
-                <div class="graph-count" id="graph-count">Nodes: 0 &nbsp;|&nbsp; Edges: 0</div>
+                <div class="panel-title">IOC Correlation Graph</div>
+                <div class="graph-count" id="graph-count">Nodes: 0 &nbsp;·&nbsp; Edges: 0</div>
             </div>
 
             <div id="graph-container">
-                <!-- grid bg is CSS -->
                 <div class="legend">
                     <div class="legend-title">MITRE Tactics</div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#ff5e7a;box-shadow:0 0 6px #ff5e7a"></div>Initial
-                        Access
+                        <div class="legend-color" style="background:#e88f7a"></div>Initial Access
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#ff8c42;box-shadow:0 0 6px #ff8c42"></div>Command
-                        &amp; Control
+                        <div class="legend-color" style="background:#e0a05c"></div>Command &amp; Control
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#ffe066;box-shadow:0 0 6px #ffe066"></div>
-                        Persistence
+                        <div class="legend-color" style="background:#d4b656"></div>Persistence
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#a855f7;box-shadow:0 0 6px #a855f7"></div>Priv.
-                        Escalation
+                        <div class="legend-color" style="background:#a3a0e0"></div>Priv. Escalation
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#7c3aed;box-shadow:0 0 6px #7c3aed"></div>Defense
-                        Evasion
+                        <div class="legend-color" style="background:#5fb8bf"></div>Defense Evasion
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#34d399;box-shadow:0 0 6px #34d399"></div>Discovery
+                        <div class="legend-color" style="background:#7bc48f"></div>Discovery
                     </div>
                     <div class="legend-item">
-                        <div class="legend-color" style="background:#94a3b8;box-shadow:0 0 4px #94a3b8"></div>Other
+                        <div class="legend-color" style="background:#7d8590"></div>Other
                     </div>
                 </div>
 
                 <div class="zoom-controls">
-                    <button class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
-                    <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
-                    <button class="zoom-btn" id="zoom-fit" title="Reset">⊠</button>
+                    <button class="zoom-btn" id="zoom-in" title="Zoom in">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </button>
+                    <button class="zoom-btn" id="zoom-out" title="Zoom out">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <path d="M5 12h14" />
+                        </svg>
+                    </button>
+                    <button class="zoom-btn" id="zoom-fit" title="Reset view">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -907,54 +874,106 @@
             <!-- Stats -->
             <div class="panel stats-panel" id="status-panel">
                 <div class="panel-header">
-                    <div class="panel-title">
-                        <div class="dot"></div>Pipeline Status
+                    <div class="tabs">
+                        <button class="tab-btn active" data-view="status">Pipeline</button>
+                        <button class="tab-btn" data-view="incidents">Incidents</button>
                     </div>
                 </div>
-                <div class="stat-grid">
-                    <div class="stat-card events">
-                        <div class="stat-label">Total Events</div>
-                        <div class="stat-value" id="total-events">—</div>
+
+                <div id="view-status" class="tab-view active">
+                    <div class="stat-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-head">
+                                <span class="stat-label">Events</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 12h4l2.5-7L14 19l2.5-7H21" />
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="total-events">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-head">
+                                <span class="stat-label">Alerts</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 2 2 20h20L12 2Z" />
+                                    <path d="M12 9v5M12 17h.01" />
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="total-alerts">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-head">
+                                <span class="stat-label">Detections</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <circle cx="12" cy="12" r="8" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="total-detections">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-head">
+                                <span class="stat-label">Open Incidents</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 3v18M5 4h11l-2 4 2 4H5" />
+                                </svg>
+                            </div>
+                            <div class="stat-value" id="open-incidents">—</div>
+                        </div>
                     </div>
-                    <div class="stat-card alerts">
-                        <div class="stat-label">Total Alerts</div>
-                        <div class="stat-value" id="total-alerts">—</div>
-                    </div>
-                    <div class="stat-card detections">
-                        <div class="stat-label">Detections</div>
-                        <div class="stat-value" id="total-detections">—</div>
-                    </div>
-                    <div class="stat-card incidents">
-                        <div class="stat-label">Open Incidents</div>
-                        <div class="stat-value" id="open-incidents">—</div>
+                    <div class="db-status-row">
+                        <span class="db-label">Database</span>
+                        <span class="db-value" id="db-status">
+                            <span class="db-dot" id="db-dot" style="background:var(--text-tertiary)"></span>
+                            <span id="db-text">Checking…</span>
+                        </span>
                     </div>
                 </div>
-                <div class="db-status-row">
-                    <span class="db-label">Database</span>
-                    <span class="db-value" id="db-status">
-                        <span class="db-dot" id="db-dot" style="background:#607b9e"></span>
-                        <span id="db-text">Checking…</span>
-                    </span>
+
+                <div id="view-incidents" class="tab-view">
+                    <div class="mini-stat-grid">
+                        <div class="mini-stat">
+                            <span class="mini-stat-label">Total</span>
+                            <span class="mini-stat-value" id="inc-total">—</span>
+                        </div>
+                        <div class="mini-stat">
+                            <span class="mini-stat-label">Active</span>
+                            <span class="mini-stat-value" id="inc-active">—</span>
+                        </div>
+                        <div class="mini-stat">
+                            <span class="mini-stat-label">Resolved</span>
+                            <span class="mini-stat-value" id="inc-resolved">—</span>
+                        </div>
+                    </div>
+
+                    <div class="section-label">By Severity</div>
+                    <div class="sev-bar" id="sev-bar"></div>
+                    <div class="mini-legend" id="sev-legend"></div>
+
+                    <div class="section-label">By MITRE Tactic</div>
+                    <div id="tactic-bars"></div>
+
+                    <div class="section-label">By Analyst</div>
+                    <div id="analyst-list"></div>
                 </div>
             </div>
 
             <!-- Cluster Details (hidden by default) -->
             <div class="panel cluster-panel" id="cluster-panel">
                 <div class="panel-header">
-                    <div class="panel-title">
-                        <div class="dot"></div>Cluster Details
-                    </div>
-                    <button class="btn" onclick="closeCluster()">✕ Close</button>
+                    <div class="panel-title">Cluster Details</div>
+                    <button class="btn" onclick="closeCluster()">Close</button>
                 </div>
                 <div class="panel-content" id="cluster-content"></div>
             </div>
 
-            <!-- ██ ACTIVITY TIMELINE ██ -->
+            <!-- Activity Timeline -->
             <div class="panel timeline-panel">
                 <div class="panel-header">
-                    <div class="panel-title">
-                        <div class="dot"></div>Activity Timeline
-                    </div>
+                    <div class="panel-title">Activity Timeline</div>
                     <span class="graph-count" id="event-count"></span>
                 </div>
                 <div id="timeline-container"></div>
@@ -971,21 +990,21 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // ── TACTIC COLOUR MAP ──────────────────────────────
+        // ── TACTIC COLOUR MAP (desaturated categorical palette) ──
         const TACTIC_COLORS = {
-            "Initial Access": { fill: "#ff5e7a", stroke: "#ff2050" },
-            "Execution": { fill: "#ff8c42", stroke: "#e06020" },
-            "Persistence": { fill: "#ffe066", stroke: "#d4a800" },
-            "Privilege Escalation": { fill: "#a855f7", stroke: "#7c3aed" },
-            "Defense Evasion": { fill: "#38bdf8", stroke: "#0284c7" },
-            "Credential Access": { fill: "#f472b6", stroke: "#db2777" },
-            "Discovery": { fill: "#34d399", stroke: "#059669" },
-            "Lateral Movement": { fill: "#c084fc", stroke: "#9333ea" },
-            "Collection": { fill: "#fde68a", stroke: "#b45309" },
-            "Command and Control": { fill: "#fb923c", stroke: "#c2410c" },
-            "Exfiltration": { fill: "#f87171", stroke: "#dc2626" },
-            "Impact": { fill: "#ef4444", stroke: "#991b1b" },
-            "default": { fill: "#94a3b8", stroke: "#475569" }
+            "Initial Access": { fill: "#e88f7a", stroke: "#b96650" },
+            "Execution": { fill: "#e0a05c", stroke: "#b0763a" },
+            "Persistence": { fill: "#d4b656", stroke: "#a68a34" },
+            "Privilege Escalation": { fill: "#a3a0e0", stroke: "#7570b8" },
+            "Defense Evasion": { fill: "#5fb8bf", stroke: "#3d8d93" },
+            "Credential Access": { fill: "#d98ba0", stroke: "#ac5b71" },
+            "Discovery": { fill: "#7bc48f", stroke: "#4f9a64" },
+            "Lateral Movement": { fill: "#9c9ce0", stroke: "#6e6eb8" },
+            "Collection": { fill: "#d9c46b", stroke: "#ab9642" },
+            "Command and Control": { fill: "#e0a05c", stroke: "#b0763a" },
+            "Exfiltration": { fill: "#d97878", stroke: "#ab4d4d" },
+            "Impact": { fill: "#c26b7a", stroke: "#96434f" },
+            "default": { fill: "#7d8590", stroke: "#565e6b" }
         };
 
         function getTacticColor(tactic) {
@@ -1010,17 +1029,21 @@
 
         function renderGraph(data) {
             const container = document.getElementById('graph-container');
-            // Keep legend and zoom-controls, remove svg if exists
             container.querySelector('svg')?.remove();
 
             document.getElementById('graph-count').textContent =
-                `Nodes: ${(data.nodes || []).length}  |  Edges: ${(data.edges || []).length}`;
+                `Nodes: ${(data.nodes || []).length}  ·  Edges: ${(data.edges || []).length}`;
 
             if (!data.nodes || data.nodes.length === 0) {
-                // Insert empty state before legend
                 const es = document.createElement('div');
                 es.className = 'empty-state';
-                es.innerHTML = '<div class="icon">🕸️</div><div>No graph data — run Stage 1 demo to populate data</div>';
+                es.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                        <circle cx="6" cy="6" r="2.2" /><circle cx="18" cy="6" r="2.2" />
+                        <circle cx="12" cy="18" r="2.2" />
+                        <path d="M7.7 7.3 10.5 16M16.3 7.3 13.5 16M8.2 6h7.6" />
+                    </svg>
+                    <div>No graph data — run the Stage 1 pipeline to populate it</div>`;
                 container.insertBefore(es, container.querySelector('.legend'));
                 return;
             }
@@ -1038,10 +1061,7 @@
 
             svgRoot = svg;
 
-            // ── Defs: arrowhead + pre-compiled glow filters (OWASP A05 / perf) ──
             const defs = svg.append('defs');
-
-            // Arrow marker
             defs.append('marker')
                 .attr('id', 'arrow')
                 .attr('viewBox', '0 -4 10 8')
@@ -1049,65 +1069,50 @@
                 .attr('markerWidth', 6).attr('markerHeight', 6)
                 .attr('orient', 'auto')
                 .append('path').attr('d', 'M0,-4L10,0L0,4')
-                .attr('fill', 'rgba(0,200,255,0.5)');
-
-            // Three glow filter intensities — GPU compiles these once.
-            // Using these avoids recalculating drop-shadow per node per frame.
-            [['glow-high', 6], ['glow-med', 4], ['glow-low', 2]].forEach(([id, blur]) => {
-                const filter = defs.append('filter').attr('id', id)
-                    .attr('x', '-50%').attr('y', '-50%')
-                    .attr('width', '200%').attr('height', '200%');
-                filter.append('feGaussianBlur')
-                    .attr('in', 'SourceGraphic').attr('stdDeviation', blur);
-            });
+                .attr('fill', '#3a4150');
 
             const g = svg.append('g');
 
-            // Zoom behaviour
             svgZoom = d3.zoom()
                 .scaleExtent([0.05, 12])
                 .on('zoom', (event) => g.attr('transform', event.transform));
             svg.call(svgZoom);
 
-            // ── Controls ──────────────────────────────
             document.getElementById('zoom-in').onclick = () => svg.transition().call(svgZoom.scaleBy, 1.4);
             document.getElementById('zoom-out').onclick = () => svg.transition().call(svgZoom.scaleBy, 0.7);
             document.getElementById('zoom-fit').onclick = () => svg.transition().call(svgZoom.transform, d3.zoomIdentity);
 
-            // ── Force simulation — fast decay so it stops sooner ──────────
             simulation = d3.forceSimulation(data.nodes)
-                .alphaDecay(0.05)          // was ~0.023; now ~2× faster cooldown
-                .velocityDecay(0.55)       // more friction → less jitter
+                .alphaDecay(0.05)
+                .velocityDecay(0.55)
                 .force('link', d3.forceLink(data.edges).id(d => d.id)
                     .distance(d => 80 + (1 - (d.strength || 0)) * 60))
                 .force('charge', d3.forceManyBody().strength(-350).distanceMax(300))
                 .force('center', d3.forceCenter(width / 2, height / 2))
                 .force('collision', d3.forceCollide().radius(d => d.size + 8));
 
-            // ── Links ─────────────────────────────────
             const link = g.append('g')
                 .attr('class', 'links')
                 .selectAll('line')
                 .data(data.edges)
                 .join('line')
                 .attr('class', 'link')
-                .attr('stroke', 'rgba(0,200,255,0.35)')
-                .attr('stroke-width', d => 0.8 + (d.strength || 0) * 2.5)
+                .attr('stroke', '#3a4150')
+                .attr('stroke-opacity', 0.6)
+                .attr('stroke-width', d => 0.8 + (d.strength || 0) * 2.2)
                 .attr('marker-end', 'url(#arrow)');
 
-            // ── Glow rings (high-risk only — use SVG filter ref) ─────────
-            const glow = g.append('g')
-                .selectAll('circle.glow')
+            // Flat ring on high-risk nodes only — no blur filter
+            const ring = g.append('g')
+                .selectAll('circle.ring')
                 .data(data.nodes.filter(d => d.risk_score >= 6.5))
                 .join('circle')
-                .attr('class', 'node-glow')
-                .attr('r', 14)
+                .attr('r', d => d.size + 5)
+                .attr('fill', 'none')
                 .attr('stroke', d => getTacticColor(d.mitre_tactic).fill)
-                .attr('stroke-width', 3)
-                .attr('stroke-opacity', 0.35)
-                .attr('fill', 'none');
+                .attr('stroke-width', 1.2)
+                .attr('stroke-opacity', 0.4);
 
-            // ── Nodes — SVG filter applied by reference (pre-compiled) ───
             const node = g.append('g')
                 .selectAll('circle.node')
                 .data(data.nodes)
@@ -1116,11 +1121,7 @@
                 .attr('r', d => d.size)
                 .attr('fill', d => getTacticColor(d.mitre_tactic).fill)
                 .attr('stroke', d => getTacticColor(d.mitre_tactic).stroke)
-                .attr('stroke-width', 2)
-                // Reference pre-compiled filter — no per-frame recalculation
-                .attr('filter', d => d.risk_score >= 6.5 ? 'url(#glow-high)'
-                    : d.risk_score >= 4 ? 'url(#glow-med)'
-                        : 'url(#glow-low)')
+                .attr('stroke-width', 1.5)
                 .on('click', (event, d) => { event.stopPropagation(); loadClusterDetails(d.id); })
                 .call(d3.drag()
                     .on('start', dragstarted)
@@ -1130,7 +1131,6 @@
             node.append('title').text(d =>
                 `${d.label}\nType: ${d.type}\nRisk: ${d.risk_score?.toFixed(2)}\nTactic: ${d.mitre_tactic}`);
 
-            // ── Labels ────────────────────────────────
             const label = g.append('g')
                 .selectAll('text')
                 .data(data.nodes)
@@ -1140,21 +1140,17 @@
                 .attr('dy', d => d.size + 12)
                 .text(d => d.label.substring(0, 16));
 
-            // ── Tick — stop simulation after settling ─────────────────
-            let _rafId = null;
             simulation.on('tick', () => {
                 link
                     .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
                     .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
                 node.attr('cx', d => d.x).attr('cy', d => d.y);
-                glow.attr('cx', d => d.x).attr('cy', d => d.y);
-                // Only update labels if visible at current zoom
+                ring.attr('cx', d => d.x).attr('cy', d => d.y);
                 const k = d3.zoomTransform(svg.node()).k;
                 if (k >= 0.6) label.attr('x', d => d.x).attr('y', d => d.y);
             });
 
-            // Fully stop the simulation when the layout has settled —
-            // no more CPU/GPU work until the user drags a node.
+            // Fully stop the simulation once settled — no idle CPU/GPU work.
             simulation.on('end', () => simulation.stop());
 
             function dragstarted(event, d) {
@@ -1193,10 +1189,9 @@
                 animCount('open-incidents', status.incidents?.open || 0);
 
                 const healthy = status.database?.healthy;
-                document.getElementById('db-dot').style.background = healthy ? '#10f097' : '#ef4444';
-                document.getElementById('db-dot').style.boxShadow = healthy ? '0 0 8px #10f097' : '0 0 8px #ef4444';
-                document.getElementById('db-text').textContent = healthy ? '✓ Connected' : '✗ Disconnected';
-                document.getElementById('db-text').style.color = healthy ? '#34d399' : '#f87171';
+                document.getElementById('db-dot').style.background = healthy ? 'var(--ok)' : 'var(--sev-critical)';
+                document.getElementById('db-text').textContent = healthy ? 'Connected' : 'Disconnected';
+                document.getElementById('db-text').style.color = healthy ? 'var(--text)' : 'var(--sev-critical)';
             } catch (error) {
                 console.error('Failed to load status:', error);
             }
@@ -1211,7 +1206,7 @@
                 container.innerHTML = '';
 
                 if (!data.events || data.events.length === 0) {
-                    container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align:center;">No events yet</div>';
+                    container.innerHTML = '<div style="color: var(--text-tertiary); padding: 1rem; text-align:center;">No events yet</div>';
                     document.getElementById('event-count').textContent = '';
                     return;
                 }
@@ -1242,15 +1237,14 @@
                 if (details.error) { alert('Cluster not found'); return; }
 
                 let sevClass = 'severity-low';
-                let sevColor = '#22db87';   /* Low  → teal-green   */
-                if (details.severity === 'Critical') { sevClass = 'severity-critical'; sevColor = 'var(--accent-critical)'; }
-                else if (details.severity === 'High') { sevClass = 'severity-high'; sevColor = 'var(--accent-high)'; }
-                else if (details.severity === 'Medium') { sevClass = 'severity-medium'; sevColor = 'var(--accent-medium)'; }
-                else if (details.severity === 'Info') { sevClass = 'severity-info'; sevColor = 'var(--accent-cyan)'; }
+                let sevColor = 'var(--sev-low)';
+                if (details.severity === 'Critical') { sevClass = 'severity-critical'; sevColor = 'var(--sev-critical)'; }
+                else if (details.severity === 'High') { sevClass = 'severity-high'; sevColor = 'var(--sev-high)'; }
+                else if (details.severity === 'Medium') { sevClass = 'severity-medium'; sevColor = 'var(--sev-medium)'; }
+                else if (details.severity === 'Info') { sevClass = 'severity-info'; sevColor = 'var(--sev-info)'; }
 
                 const riskPct = Math.min(100, (details.risk_score / 10) * 100).toFixed(0);
 
-                // Geo / ASN row
                 let geoRow = '';
                 if (details.geo && !details.geo.is_private) {
                     const country = details.geo.country || 'Unknown';
@@ -1258,34 +1252,28 @@
                     geoRow = `
                     <div class="detail-row">
                         <span class="key">Origin</span>
-                        <span class="val" style="display:flex;align-items:center;gap:6px;">
-                            <span>🌐</span><span>${country}${org ? ' · ' + org : ''}</span>
-                        </span>
+                        <span class="val">${country}${org ? ' · ' + org : ''}</span>
                     </div>`;
                 }
 
-                // Explanations card
                 const explHtml = (details.explanations || []).length
-                    ? `<div class="section-label" style="margin-top:14px">
-                            WHY THIS ALERT
-                       </div>
-                       <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);
-                                   border-radius:8px;padding:10px 12px;margin-top:6px;">
+                    ? `<div class="section-label">Why this alert</div>
+                       <div style="background:var(--bg-inset);border:1px solid var(--border);
+                                   border-radius:6px;padding:10px 12px;">
                            ${(details.explanations).map(e =>
                         `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;
-                                            color:var(--text-primary);line-height:1.45">
-                                   <span style="color:var(--accent-cyan);flex-shrink:0">›</span>
+                                            color:var(--text-secondary);line-height:1.45">
+                                   <span style="color:var(--text-tertiary);flex-shrink:0">–</span>
                                    <span>${e}</span>
                                </div>`
                     ).join('')}
                        </div>`
                     : '';
 
-                // Summary card
                 const summaryHtml = details.summary
-                    ? `<div class="section-label" style="margin-top:14px">Analyst Summary</div>
-                       <div style="font-size:0.76rem;white-space:pre-wrap;color:var(--text-muted);
-                                   line-height:1.55;padding:8px 0">${details.summary}</div>`
+                    ? `<div class="section-label">Analyst Summary</div>
+                       <div style="font-size:0.78rem;white-space:pre-wrap;color:var(--text-secondary);
+                                   line-height:1.55;">${details.summary}</div>`
                     : '';
 
                 const content = document.getElementById('cluster-content');
@@ -1298,13 +1286,13 @@
                 <div class="detail-row" style="flex-direction:column;gap:6px;align-items:stretch">
                     <div style="display:flex;justify-content:space-between">
                         <span class="key">Risk Score</span>
-                        <span style="font-size:0.85rem;font-weight:700;color:${sevColor}">
+                        <span style="font-family:var(--font-mono);font-size:0.85rem;font-weight:600;color:${sevColor}">
                             ${details.risk_score?.toFixed(2)} / 10
                         </span>
                     </div>
-                    <div style="background:rgba(255,255,255,0.08);border-radius:4px;height:6px;overflow:hidden">
+                    <div style="background:var(--bg-inset);border-radius:3px;height:5px;overflow:hidden">
                         <div style="width:${riskPct}%;height:100%;background:${sevColor};
-                                    border-radius:4px;transition:width .5s ease"></div>
+                                    border-radius:3px;transition:width .5s ease"></div>
                     </div>
                 </div>
 
@@ -1318,20 +1306,20 @@
                 </div>
                 ${geoRow}
 
-                <div class="section-label" style="margin-top:14px">IOCs</div>
+                <div class="section-label">IOCs</div>
                 ${(details.iocs || []).map(ioc => `
                     <div class="cluster-ioc">
-                        <strong style="color:var(--text-muted)">${ioc.type}:</strong>
-                        <span style="color:var(--text-primary);word-break:break-all">${ioc.value}</span><br>
-                        <span style="font-size:0.72rem;color:var(--text-muted)">
-                            Source: ${ioc.source} &nbsp;|&nbsp; Confidence: ${(ioc.confidence * 100).toFixed(0)}%
+                        <strong style="color:var(--text-tertiary)">${ioc.type}:</strong>
+                        <span style="color:var(--text);word-break:break-all">${ioc.value}</span><br>
+                        <span style="font-size:0.72rem;color:var(--text-tertiary)">
+                            Source: ${ioc.source} &nbsp;·&nbsp; Confidence: ${(ioc.confidence * 100).toFixed(0)}%
                         </span>
                     </div>
                 `).join('')}
 
                 ${(details.mitre_techniques || []).length ? `
-                <div class="section-label" style="margin-top:14px">MITRE ATT&amp;CK</div>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
+                <div class="section-label">MITRE ATT&amp;CK</div>
+                <div style="display:flex;flex-wrap:wrap">
                     ${details.mitre_techniques.map(t => `<span class="mitre-badge">${t}</span>`).join('')}
                 </div>` : ''}
 
@@ -1351,15 +1339,113 @@
             document.getElementById('status-panel').style.display = '';
         }
 
-        // ── OVERVIEW RING ──────────────────────────────────
+        // ── TABS (Pipeline / Incidents) ────────────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('view-' + btn.dataset.view).classList.add('active');
+            });
+        });
+
+        // ── INCIDENT OVERVIEW ───────────────────────────────
+        const SEV_ORDER = ["Critical", "High", "Medium", "Low", "Informational"];
+        const SEV_COLOR = {
+            "Critical": "var(--sev-critical)",
+            "High": "var(--sev-high)",
+            "Medium": "var(--sev-medium)",
+            "Low": "var(--sev-low)",
+            "Informational": "var(--sev-info)"
+        };
+
+        async function loadIncidentStats() {
+            try {
+                const response = await fetch('/dashboard/api/incident-stats');
+                const stats = await response.json();
+                if (stats.error) return;
+                renderIncidentStats(stats);
+            } catch (error) {
+                console.error('Failed to load incident stats:', error);
+            }
+        }
+
+        function renderIncidentStats(stats) {
+            document.getElementById('inc-total').textContent = stats.total_incidents ?? 0;
+            document.getElementById('inc-active').textContent = stats.active ?? 0;
+            document.getElementById('inc-resolved').textContent = stats.resolved ?? 0;
+
+            // Severity bar + legend
+            const sevCounts = stats.severity_counts || {};
+            const sevTotal = SEV_ORDER.reduce((sum, k) => sum + (sevCounts[k] || 0), 0);
+            const sevBar = document.getElementById('sev-bar');
+            const sevLegend = document.getElementById('sev-legend');
+
+            if (sevTotal === 0) {
+                sevBar.innerHTML = '';
+                sevLegend.innerHTML = '<div class="empty-mini">No incidents yet</div>';
+            } else {
+                const present = SEV_ORDER.filter(k => sevCounts[k] > 0);
+                sevBar.innerHTML = present.map(k => `
+                    <div style="width:${(sevCounts[k] / sevTotal * 100).toFixed(1)}%;background:${SEV_COLOR[k]}"
+                         title="${k}: ${sevCounts[k]}"></div>
+                `).join('');
+                sevLegend.innerHTML = present.map(k => `
+                    <div class="mini-legend-row">
+                        <span class="mini-legend-name">
+                            <span class="mini-dot" style="background:${SEV_COLOR[k]}"></span>${k}
+                        </span>
+                        <span class="mini-legend-val">${sevCounts[k]}</span>
+                    </div>
+                `).join('');
+            }
+
+            // MITRE tactic breakdown (top 5)
+            const tacticEntries = Object.entries(stats.tactic_counts || {})
+                .sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const tacticMax = tacticEntries.length ? tacticEntries[0][1] : 0;
+            const tacticEl = document.getElementById('tactic-bars');
+            tacticEl.innerHTML = tacticEntries.length ? tacticEntries.map(([name, count]) => `
+                <div class="bar-row">
+                    <span class="bar-label" title="${name}">${name}</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width:${tacticMax ? (count / tacticMax * 100) : 0}%;
+                                    background:${getTacticColor(name).fill}"></div>
+                    </div>
+                    <span class="bar-val">${count}</span>
+                </div>
+            `).join('') : '<div class="empty-mini">No MITRE data yet</div>';
+
+            // Analyst workload (top 5 by assigned total)
+            const analysts = (stats.analysts || []).sort((a, b) => b.total - a.total).slice(0, 5);
+            const analystEl = document.getElementById('analyst-list');
+            analystEl.innerHTML = analysts.length ? analysts.map(a => {
+                const total = a.total || 1;
+                return `
+                <div class="analyst-row">
+                    <span class="analyst-name" title="${a.name}">${a.name}</span>
+                    <div class="analyst-bar">
+                        <div style="width:${(a.new / total * 100).toFixed(1)}%;background:var(--accent)"
+                             title="New: ${a.new}"></div>
+                        <div style="width:${(a.in_progress / total * 100).toFixed(1)}%;background:var(--sev-medium)"
+                             title="In progress: ${a.in_progress}"></div>
+                        <div style="width:${(a.resolved / total * 100).toFixed(1)}%;background:var(--ok)"
+                             title="Resolved: ${a.resolved}"></div>
+                    </div>
+                    <span class="analyst-total">${a.total}</span>
+                </div>`;
+            }).join('') : '<div class="empty-mini">No incidents assigned yet</div>';
+        }
+
         // ── BOOT ──────────────────────────────────────────
         async function loadDashboard() {
-            await Promise.all([loadGraphData(), loadStatus(), loadTimeline()]);
+            await Promise.all([loadGraphData(), loadStatus(), loadTimeline(), loadIncidentStats()]);
         }
 
         loadDashboard();
         setInterval(loadStatus, 30000);
         setInterval(loadTimeline, 30000);
+        setInterval(loadIncidentStats, 30000);
     </script>
 </body>
 
