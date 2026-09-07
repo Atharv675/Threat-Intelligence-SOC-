@@ -14,7 +14,7 @@ services:
     build: .
     container_name: threat-intel-web
     ports:
-      - "8000:8000"  # Expose FastAPI dashboard and API port
+      - "8005:8000"  # Expose FastAPI dashboard and API port (avoiding 8000 which is used by Splunk)
     environment:
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB_NAME=${MONGODB_DB_NAME:-threat_intel}

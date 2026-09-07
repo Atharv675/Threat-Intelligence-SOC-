@@ -41,27 +41,28 @@ class ClusterDetailsPanel:
             # ── 1. Find the primary event ─────────────────────────────────
             all_events = await self.event_repo.find_all(skip=0, limit=1000)
 
-            primary_event: Optional[Dict] = None
-            cluster_events: List[Dict] = []
-
             for e in all_events:
                 eid = e.get("event_id")
                 cid = e.get("correlation_id")
-                # Compute the same stable md5 fallback that graph_view.py uses
-                val_fb = hashlib.md5(e.get("value", "unknown").encode()).hexdigest()[:16]
+                val = e.get("value", "")
+                val_md5 = hashlib.md5(val.encode()).hexdigest()[:16]
+                val_sha = hashlib.sha256(val.encode()).hexdigest()[:16]
 
-                if eid == cluster_id or cid == cluster_id or val_fb == cluster_id:
-                    if eid == cluster_id or val_fb == cluster_id:
-                        primary_event = e
-                    cluster_events.append(e)
+                if cluster_id in (eid, cid, val, val_md5, val_sha):
+                    primary_event = e
+                    break
 
-            # If we found cluster_events but no primary, take the first
-            if not primary_event and cluster_events:
-                primary_event = cluster_events[0]
+            if not primary_event and all_events:
+                primary_event = all_events[0]
 
             if not primary_event:
                 logger.warning("cluster_not_found", cluster_id=cluster_id)
                 return None
+
+            target_cid = primary_event.get("correlation_id")
+            cluster_events = [e for e in all_events if target_cid and e.get("correlation_id") == target_cid]
+            if not cluster_events:
+                cluster_events = [primary_event]
 
             ioc_value = primary_event.get("value", "")
 

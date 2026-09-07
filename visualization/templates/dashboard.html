@@ -4,41 +4,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Threat Intelligence Dashboard</title>
+    <title>SOC Posture &amp; Threat Intelligence Matrix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         :root {
-            /* ── Surfaces ─────────────────────────────────────────── */
-            --bg: #0a0c10;
-            --bg-surface: #101319;
-            --bg-inset: #151922;
-            --bg-hover: #1a1f29;
-            --graph-bg: #0a0c10;
-            --border: #212630;
-            --border-strong: #2c3340;
+            /* ── Professional Solid Black SOC Surfaces (No blue hue) ── */
+            --bg-root: #000000;
+            --bg-header: #0a0a0a;
+            --bg-card: #111111;
+            --bg-card-hover: #191919;
+            --bg-inset: #080808;
+            --border: #222222;
+            --border-subtle: #181818;
+            --border-active: #333333;
 
-            /* ── Text ─────────────────────────────────────────────── */
-            --text: #e4e7eb;
-            --text-secondary: #8b93a1;
-            --text-tertiary: #565e6b;
+            /* ── Solid Semantic Colors for Widgets ─────────────────── */
+            --solid-green-bg: #48d597;
+            --solid-green-text: #052e16;
+            --solid-peach-bg: #fed7aa;
+            --solid-peach-text: #431407;
 
-            /* ── Single functional accent (interactive / selection) ── */
-            --accent: #5b8def;
-            --accent-soft: rgba(91, 141, 239, 0.12);
+            /* ── Chart Solid Bar Colors (Matching Reference) ──────── */
+            --chart-critical: #d94a4a;
+            --chart-high: #e58237;
+            --chart-medium: #eab308;
+            --chart-low: #475569;
+            --chart-line-critical: #f97316;
+            --chart-line-low: #cbd5e1;
 
-            /* ── Severity ladder (semantic, used only for severity) ── */
-            --sev-critical: #ef5a5f;
-            --sev-high: #ef9a4d;
-            --sev-medium: #e0b73f;
-            --sev-low: #5b8def;
-            --sev-info: #7d8590;
-            --ok: #3fb950;
+            /* ── Map Tactical Colors (Preserved Neon Hues as Requested) ─ */
+            --neon-access: #ff4d6d;
+            --neon-c2: #ff9233;
+            --neon-persist: #ffd166;
+            --neon-priv: #b5179e;
+            --neon-defense: #00b4d8;
+            --neon-discovery: #06d6a0;
+            --neon-impact: #ef233c;
+            --neon-default: #8d99ae;
+
+            /* ── Typography ────────────────────────────────────────── */
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            --text-muted: #475569;
 
             --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
         * {
@@ -49,1403 +65,1924 @@
 
         body {
             font-family: var(--font-sans);
-            background: var(--bg);
-            color: var(--text);
+            background: var(--bg-root);
+            color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
-            font-size: 14px;
+            font-size: 13px;
         }
 
-        /* ─── HEADER ─────────────────────────────────────────── */
+        /* ─── TOP GLOBAL NAVBAR (Matching Reference UI) ──────── */
         header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
-            height: 52px;
-            background: var(--bg-surface);
+            padding: 0 16px;
+            height: 48px;
+            background: var(--bg-header);
             border-bottom: 1px solid var(--border);
+            z-index: 20;
         }
 
         .header-left {
             display: flex;
             align-items: center;
+            gap: 16px;
+        }
+
+        .soc-logo {
+            width: 28px;
+            height: 28px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 14px;
+            border: 1px solid var(--border);
+        }
+
+        /* Top Nav Tabs */
+        .nav-tabs {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .nav-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 14px 14px;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.15s;
+        }
+
+        .nav-tab:hover {
+            color: #ffffff;
+        }
+
+        .nav-tab.active {
+            color: #ffffff;
+        }
+
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 12px;
+            right: 12px;
+            height: 2px;
+            background: #ffffff;
+            border-radius: 2px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
             gap: 12px;
         }
 
-        .mark {
-            width: 22px;
-            height: 22px;
-            color: var(--text);
-            flex-shrink: 0;
+        /* Workspaces Segmented Pill */
+        .segmented-control {
+            display: flex;
+            background: #080808;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px;
         }
 
-        h1 {
-            font-size: 0.95rem;
+        .segment-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
             font-weight: 600;
-            color: var(--text);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
         }
 
-        h1 .dim {
-            color: var(--text-tertiary);
-            font-weight: 500;
+        .segment-btn.active {
+            background: #222222;
+            color: #ffffff;
         }
 
-        .header-badge {
-            font-size: 0.68rem;
-            font-family: var(--font-mono);
-            font-weight: 500;
-            color: var(--ok);
-            background: rgba(63, 185, 80, 0.1);
-            border: 1px solid rgba(63, 185, 80, 0.25);
-            padding: 2px 8px;
-            border-radius: 3px;
-            letter-spacing: 0.02em;
-        }
-
-        .header-right {
+        /* Dropdown button */
+        .filter-dropdown-btn {
+            background: #141414;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            padding: 5px 12px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.78rem;
-            color: var(--text-tertiary);
-            font-family: var(--font-mono);
-        }
-
-        .live-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: var(--ok);
-            border-radius: 50%;
-            animation: pulse 2.4s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.35;
-            }
-        }
-
-        /* ─── LAYOUT ─────────────────────────────────────────── */
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            grid-template-rows: 1fr;
-            gap: 1px;
-            background: var(--border);
-            height: calc(100vh - 52px);
-        }
-
-        /* ─── PANELS ─────────────────────────────────────────── */
-        .panel {
-            background: var(--bg-surface);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 11px 16px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .panel-title {
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        /* ─── GRAPH PANEL ────────────────────────────────────── */
-        .graph-panel {
-            grid-row: 1 / 2;
-            grid-column: 1 / 2;
-        }
-
-        #graph-container {
-            width: 100%;
-            height: calc(100% - 45px);
-            background: var(--graph-bg);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .graph-count {
-            font-size: 0.72rem;
-            font-family: var(--font-mono);
-            color: var(--text-tertiary);
-        }
-
-        /* ─── SVG STYLES ─────────────────────────────────────── */
-        .node {
             cursor: pointer;
         }
 
-        .node-label {
-            font-size: 9px;
+        .header-meta {
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: #141414;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .icon-btn:hover {
+            color: #ffffff;
+            background: #222222;
+        }
+
+        /* ─── MAIN CONTAINER VIEW SWITCHER ──────────────────── */
+        .view-content {
+            display: none;
+            height: calc(100vh - 48px);
+            overflow: hidden;
+        }
+
+        .view-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── VIEW 1: MAP VIEW (MAP IS THE MAIN FEATURE) ────── */
+        #view-map {
+            position: relative;
+        }
+
+        /* Top metrics ticker bar above map */
+        .map-top-bar {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        .solid-mini-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .solid-mini-card.green-accent {
+            background: var(--solid-green-bg);
+            color: var(--solid-green-text);
+            border: none;
+        }
+
+        .solid-mini-card.green-accent .card-title,
+        .solid-mini-card.green-accent .card-icon {
+            color: rgba(5, 46, 22, 0.7);
+        }
+
+        .solid-mini-card.green-accent .card-value {
+            color: var(--solid-green-text);
+        }
+
+        .solid-mini-card.peach-accent {
+            background: var(--solid-peach-bg);
+            color: var(--solid-peach-text);
+            border: none;
+        }
+
+        .solid-mini-card.peach-accent .card-title,
+        .solid-mini-card.peach-accent .card-subtext {
+            color: rgba(67, 20, 7, 0.7);
+        }
+
+        .solid-mini-card.peach-accent .card-value {
+            color: var(--solid-peach-text);
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .card-title {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .card-icon {
+            font-size: 10px;
+            color: var(--text-tertiary);
+        }
+
+        .card-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .card-value {
+            font-size: 1.25rem;
+            font-weight: 700;
             font-family: var(--font-mono);
-            fill: var(--text-tertiary);
+            color: #ffffff;
+            line-height: 1;
+        }
+
+        .card-trend {
+            font-size: 0.7rem;
+            color: var(--text-tertiary);
+            font-weight: 600;
+        }
+
+        .card-subtext {
+            font-size: 0.58rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 2px;
+        }
+
+        /* Map Body Layout */
+        .map-body-layout {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            height: calc(100vh - 124px);
+            position: relative;
+            background: #000000;
+        }
+
+        .map-canvas-container {
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #101010 0%, #000000 100%);
+        }
+
+        .map-toolbar {
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
             pointer-events: none;
         }
 
-        /* ─── LEGEND ─────────────────────────────────────────── */
-        .legend {
+        .map-search-box {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            background: rgba(18, 18, 18, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            width: 320px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .map-search-box input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 0.75rem;
+            outline: none;
+            width: 100%;
+            margin-left: 8px;
+        }
+
+        .map-filter-pills {
+            pointer-events: auto;
+            display: flex;
+            gap: 6px;
+        }
+
+        .filter-pill {
+            background: rgba(18, 18, 18, 0.95);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .filter-pill:hover {
+            border-color: var(--border-active);
+            color: #ffffff;
+        }
+
+        .filter-pill.active {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+        }
+
+        /* Map Tooltip */
+        #map-tooltip {
             position: absolute;
-            bottom: 12px;
-            left: 12px;
-            background: var(--bg-surface);
+            display: none;
+            pointer-events: none;
+            z-index: 100;
+            background: #121212;
+            border: 1px solid var(--border-active);
+            border-radius: 6px;
+            padding: 10px 12px;
+            min-width: 220px;
+            font-size: 0.74rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+        }
+
+        /* Map Legend */
+        .map-legend {
+            position: absolute;
+            bottom: 14px;
+            left: 16px;
+            background: rgba(12, 12, 12, 0.95);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 10px 12px;
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             display: flex;
             flex-direction: column;
             gap: 5px;
+            z-index: 5;
         }
 
-        .legend-title {
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 3px;
-        }
-
-        .legend-item {
+        .map-legend-row {
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 8px;
             color: var(--text-secondary);
         }
 
-        .legend-color {
+        .legend-swatch {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
         }
 
-        /* ─── ZOOM CONTROLS ──────────────────────────────────── */
-        .zoom-controls {
+        /* Zoom controls */
+        .map-zoom-box {
             position: absolute;
-            bottom: 12px;
-            right: 12px;
+            bottom: 14px;
+            right: 16px;
             display: flex;
             flex-direction: column;
             gap: 1px;
+            background: var(--border);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
+            z-index: 5;
         }
 
         .zoom-btn {
-            width: 28px;
-            height: 28px;
-            background: var(--bg-surface);
+            width: 30px;
+            height: 30px;
+            background: var(--bg-card);
             border: none;
-            border-bottom: 1px solid var(--border);
             color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-family: var(--font-sans);
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .zoom-btn:last-child {
-            border-bottom: none;
+            cursor: pointer;
         }
 
         .zoom-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text);
+            background: var(--bg-card-hover);
+            color: #ffffff;
         }
 
-        .zoom-btn svg {
-            width: 13px;
-            height: 13px;
-        }
-
-        /* ─── RIGHT PANEL ────────────────────────────────────────── */
-        .right-panel {
-            grid-row: 1 / -1;
-            grid-column: 2 / 3;
+        /* Map Sidebar (Details & Metrics Drawer) */
+        .map-sidebar {
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            gap: 1px;
-            overflow: hidden;
             height: 100%;
-            background: var(--border);
-        }
-
-        .stats-panel {
-            flex: 0 0 auto;
-        }
-
-        .timeline-panel {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
         }
 
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1px;
-            background: var(--border);
-        }
-
-        .stat-card {
-            background: var(--bg-surface);
-            padding: 12px 14px;
-        }
-
-        .stat-card-head {
+        .sidebar-tabs {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .stat-card svg {
-            width: 13px;
-            height: 13px;
-            color: var(--text-tertiary);
-        }
-
-        .stat-label {
-            font-size: 0.66rem;
-            font-weight: 500;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .stat-value {
-            font-size: 1.6rem;
-            font-weight: 600;
-            font-family: var(--font-mono);
-            color: var(--text);
-            line-height: 1;
-        }
-
-        /* db status */
-        .db-status-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 14px;
-            font-size: 0.78rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .db-label {
-            color: var(--text-tertiary);
-        }
-
-        .db-value {
-            font-family: var(--font-mono);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .db-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-
-        /* ─── CLUSTER PANEL ──────────────────────────────────── */
-        .cluster-panel {
-            display: none;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .cluster-panel.active {
-            display: flex;
-        }
-
-        .cluster-panel .panel-content {
-            padding: 14px 16px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .cluster-ioc {
-            background: var(--bg-inset);
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            font-size: 0.78rem;
-            word-break: break-all;
-        }
-
-        .mitre-badge {
-            display: inline-block;
-            background: var(--bg-inset);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-strong);
-            padding: 2px 8px;
-            margin: 0 4px 4px 0;
-            border-radius: 4px;
-            font-size: 0.72rem;
-            font-family: var(--font-mono);
-        }
-
-        .severity-badge {
-            display: inline-block;
-            padding: 2px 9px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .severity-critical {
-            background: rgba(239, 90, 95, 0.12);
-            color: var(--sev-critical);
-            border: 1px solid rgba(239, 90, 95, 0.3);
-        }
-
-        .severity-high {
-            background: rgba(239, 154, 77, 0.12);
-            color: var(--sev-high);
-            border: 1px solid rgba(239, 154, 77, 0.3);
-        }
-
-        .severity-medium {
-            background: rgba(224, 183, 63, 0.12);
-            color: var(--sev-medium);
-            border: 1px solid rgba(224, 183, 63, 0.3);
-        }
-
-        .severity-low {
-            background: rgba(91, 141, 239, 0.12);
-            color: var(--sev-low);
-            border: 1px solid rgba(91, 141, 239, 0.3);
-        }
-
-        .severity-info {
-            background: rgba(125, 133, 144, 0.12);
-            color: var(--sev-info);
-            border: 1px solid rgba(125, 133, 144, 0.3);
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
             border-bottom: 1px solid var(--border);
-            font-size: 0.79rem;
-        }
-
-        .detail-row .key {
-            color: var(--text-tertiary);
-        }
-
-        .detail-row .val {
-            color: var(--text);
-            font-family: var(--font-mono);
-        }
-
-        .section-label {
-            font-size: 0.68rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-tertiary);
-            margin: 14px 0 6px;
-        }
-
-        /* ─── TABS ───────────────────────────────────────────── */
-        .tabs {
-            display: flex;
-            gap: 2px;
             background: var(--bg-inset);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 2px;
         }
 
-        .tab-btn {
-            border: none;
+        .side-tab-btn {
+            flex: 1;
             background: transparent;
-            color: var(--text-tertiary);
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            padding: 4px 11px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: var(--font-sans);
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .tab-btn:hover {
+            border: none;
             color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 10px 0;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
         }
 
-        .tab-btn.active {
-            background: var(--bg-hover);
-            color: var(--text);
+        .side-tab-btn.active {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            background: var(--bg-card);
         }
 
-        .tab-view {
-            display: none;
-        }
-
-        .tab-view.active {
-            display: block;
-        }
-
-        #view-incidents {
-            padding: 12px 14px 14px;
-            max-height: 380px;
+        .sidebar-content {
+            flex: 1;
             overflow-y: auto;
+            padding: 14px;
         }
 
-        /* ─── INCIDENT OVERVIEW ──────────────────────────────── */
-        .mini-stat-grid {
+        /* ─── VIEW 2: FULL SOC POSTURE (MATCHING REFERENCE UI) ─ */
+        #view-posture {
+            padding: 16px;
+            overflow-y: auto;
+            gap: 16px;
+        }
+
+        .posture-grid-top {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: var(--border);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            overflow: hidden;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
-        .mini-stat {
-            background: var(--bg-surface);
-            padding: 9px 10px;
+        .posture-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 18px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            justify-content: space-between;
+            min-height: 100px;
         }
 
-        .mini-stat-label {
-            font-size: 0.62rem;
-            font-weight: 500;
+        .posture-card.solid-green {
+            background: var(--solid-green-bg);
+            color: var(--solid-green-text);
+            border: none;
+        }
+
+        .posture-card.solid-green .card-title,
+        .posture-card.solid-green .card-icon {
+            color: rgba(5, 46, 22, 0.7);
+        }
+
+        .posture-card.solid-green .card-value {
+            color: var(--solid-green-text);
+        }
+
+        .posture-card.solid-peach {
+            background: var(--solid-peach-bg);
+            color: var(--solid-peach-text);
+            border: none;
+        }
+
+        .posture-card.solid-peach .card-title,
+        .posture-card.solid-peach .card-icon,
+        .posture-card.solid-peach .time-sub-label {
+            color: rgba(67, 20, 7, 0.7);
+        }
+
+        .posture-card.solid-peach .card-value {
+            color: var(--solid-peach-text);
+        }
+
+        .posture-card .card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            line-height: 1;
+            margin: 6px 0;
+        }
+
+        .timer-time-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+        }
+
+        .time-sub-label {
+            font-size: 0.65rem;
             color: var(--text-tertiary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
 
-        .mini-stat-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-            font-family: var(--font-mono);
-            color: var(--text);
-            line-height: 1;
-        }
-
-        .empty-mini {
-            font-size: 0.76rem;
-            color: var(--text-tertiary);
-            padding: 4px 0 8px;
-        }
-
-        .sev-bar {
-            display: flex;
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-            background: var(--bg-inset);
-        }
-
-        .mini-legend {
+        /* Posture Charts Grid */
+        .posture-charts-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 10px;
-            margin-top: 8px;
+            grid-template-columns: 1fr 1fr 1.3fr;
+            gap: 12px;
         }
 
-        .mini-legend-row {
+        .chart-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.74rem;
         }
 
-        .mini-legend-name {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-secondary);
-        }
-
-        .mini-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .mini-legend-val {
-            font-family: var(--font-mono);
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .bar-row {
-            display: grid;
-            grid-template-columns: 84px 1fr 22px;
-            align-items: center;
-            gap: 8px;
-            padding: 3px 0;
-        }
-
-        .bar-label {
-            font-size: 0.72rem;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .bar-track {
-            height: 6px;
-            border-radius: 3px;
-            background: var(--bg-inset);
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            border-radius: 3px;
-        }
-
-        .bar-val {
-            font-family: var(--font-mono);
-            font-size: 0.72rem;
-            color: var(--text-tertiary);
-            text-align: right;
-        }
-
-        .analyst-row {
-            display: grid;
-            grid-template-columns: 84px 1fr 22px;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-        }
-
-        .analyst-name {
-            font-size: 0.72rem;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .analyst-bar {
-            display: flex;
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-            background: var(--bg-inset);
-        }
-
-        .analyst-total {
-            font-family: var(--font-mono);
-            font-size: 0.72rem;
-            color: var(--text-tertiary);
-            text-align: right;
-        }
-
-        /* ─── TIMELINE PANEL ─────────────────────────────────── */
-
-        #timeline-container {
+        /* Solid Horizontal Bars (Cases by Severity) */
+        .solid-bar-chart {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            padding: 12px;
+            gap: 12px;
             flex: 1;
-            overflow-y: auto;
+            justify-content: center;
         }
 
-        #timeline-container::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        #timeline-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        #timeline-container::-webkit-scrollbar-thumb {
-            background: var(--border-strong);
-            border-radius: 4px;
-        }
-
-        .timeline-event {
+        .bar-group {
             display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 0 12px;
-            padding: 9px 12px;
-            border-radius: 5px;
-            background: var(--bg-inset);
-            border-left: 2px solid var(--text-tertiary);
+            grid-template-columns: 60px 1fr 35px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bar-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .bar-slot {
+            height: 22px;
+            background: #141414;
+            border-radius: 3px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .solid-fill-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        .bar-num {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* MITRE Tactic Chart */
+        .mitre-bar-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .mitre-bar-group {
+            display: grid;
+            grid-template-columns: 90px 1fr 32px;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 2px 0;
+            border-radius: 4px;
             transition: background 0.15s;
         }
 
-        .timeline-event:hover {
-            background: var(--bg-hover);
-        }
+        .mitre-bar-group:hover { background: rgba(255,255,255,0.04); }
+        .mitre-bar-group.selected { background: rgba(255,255,255,0.08); }
 
-        .timeline-event.detection {
-            border-left-color: var(--sev-high);
-        }
-
-        .timeline-event.incident {
-            border-left-color: var(--sev-critical);
-        }
-
-        .timeline-event.alert {
-            border-left-color: var(--sev-low);
-        }
-
-        .timeline-event.correlation {
-            border-left-color: var(--sev-medium);
-        }
-
-        .event-time {
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: var(--text-tertiary);
-            white-space: nowrap;
-            line-height: 1.6;
-        }
-
-        .event-desc {
-            font-size: 0.8rem;
+        .mitre-bar-name {
+            font-size: 0.68rem;
             color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* ─── BUTTON ─────────────────────────────────────────── */
-        .btn {
-            background: var(--bg-inset);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-strong);
-            padding: 4px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-family: var(--font-sans);
             font-weight: 500;
-            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .btn:hover {
-            background: var(--bg-hover);
-            color: var(--text);
+        /* Interactive bar cursor & hover glow */
+        .bar-slot { cursor: pointer; }
+        .bar-group { cursor: pointer; border-radius: 4px; padding: 2px; transition: background 0.15s; }
+        .bar-group:hover { background: rgba(255,255,255,0.04); }
+        .bar-group.selected { background: rgba(255,255,255,0.08); }
+        .solid-fill-bar { transition: width 0.7s cubic-bezier(0.4,0,0.2,1), filter 0.2s; }
+        .bar-group:hover .solid-fill-bar { filter: brightness(1.25); }
+        .bar-group.selected .solid-fill-bar { filter: brightness(1.35) drop-shadow(0 0 4px currentColor); }
+
+        /* Shared Tooltip */
+        #chart-tooltip {
+            position: fixed;
+            pointer-events: none;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 7px 12px;
+            font-size: 0.74rem;
+            color: #f8fafc;
+            z-index: 9999;
+            display: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
         }
 
-        /* ─── SCROLLBAR GLOBAL ───────────────────────────────── */
-        ::-webkit-scrollbar {
-            width: 4px;
+        /* Trend Line SVG Chart */
+        .trend-chart-box { position: relative; }
+        .trend-chart-box svg {
+            width: 100%;
+            height: 180px;
+            cursor: crosshair;
         }
+        .trend-crosshair { pointer-events: none; }
 
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-strong);
-            border-radius: 4px;
-        }
-
-        /* ─── EMPTY STATE ────────────────────────────────────── */
-        .empty-state {
+        /* ─── CLUSTER DETAILS & INCIDENTS (NO SLOP, NO ASTERISKS) ── */
+        .detail-line {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            gap: 10px;
-            color: var(--text-tertiary);
-            font-size: 0.82rem;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.78rem;
         }
 
-        .empty-state svg {
-            width: 32px;
-            height: 32px;
-            opacity: 0.5;
+        .detail-k { color: var(--text-secondary); }
+        .detail-v { font-family: var(--font-mono); font-weight: 600; color: #ffffff; }
+
+        .expl-card {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin: 10px 0;
+        }
+
+        .expl-item {
+            display: flex;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .expl-item-bullet {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        /* Analyst Summary Clean Formatting */
+        .summary-card {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .summary-heading {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 10px 0 4px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-heading:first-child { margin-top: 0; }
+
+        .summary-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            padding: 2px 0;
+        }
+
+        .summary-dot {
+            width: 5px;
+            height: 5px;
+            background: #ffffff;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Incidents List In Sidebar */
+        .incident-item-card {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .incident-item-card:hover {
+            border-color: var(--border-active);
+            background: #171717;
+        }
+
+        .inc-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .inc-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+            line-height: 1.35;
+        }
+
+        .inc-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .inc-badge.critical { background: rgba(217, 74, 74, 0.2); color: #f87171; border: 1px solid rgba(217, 74, 74, 0.4); }
+        .inc-badge.high { background: rgba(229, 130, 55, 0.2); color: #fb923c; border: 1px solid rgba(229, 130, 55, 0.4); }
+        .inc-badge.medium { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+        .inc-badge.low { background: rgba(71, 85, 105, 0.2); color: #94a3b8; border: 1px solid rgba(71, 85, 105, 0.4); }
+
+        .ioc-pill-tag {
+            display: inline-block;
+            background: #181818;
+            border: 1px solid var(--border);
+            color: #cbd5e1;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 0 4px 4px 0;
+            word-break: break-all;
         }
     </style>
 </head>
 
 <body>
+    <!-- ── Header (Matching Reference Navigation) ── -->
     <header>
         <div class="header-left">
-            <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2.5 4.5 5.5v6c0 5 3.2 8.4 7.5 10 4.3-1.6 7.5-5 7.5-10v-6L12 2.5Z" />
-                <path d="m9 12 2 2 4-4.5" />
-            </svg>
-            <h1>Threat Intelligence <span class="dim">Aggregator</span></h1>
-            <span class="header-badge">LIVE</span>
+            <div class="soc-logo">🛡️</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-target="view-map">Correlation Map (Main)</button>
+                <button class="nav-tab" data-target="view-posture">SOC Posture</button>
+                <button class="nav-tab" data-target="view-incidents-page">Operations &amp; Incidents</button>
+            </div>
         </div>
-        <div class="header-right">
-            <span class="live-dot"></span>
-            <span id="clock">--:--:--</span>
-            <span>UTC</span>
+
+        <div class="header-controls">
+            <!-- Workspaces Pill -->
+            <div class="segmented-control">
+                <button class="segment-btn active">All Workspaces</button>
+                <button class="segment-btn">My Workspace</button>
+            </div>
+
+            <!-- Case Filter Dropdown -->
+            <button class="filter-dropdown-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>All cases</span>
+                <span style="font-size:9px">▼</span>
+            </button>
+
+            <div class="header-meta">
+                <span id="last-updated-text">Last updated at --:--</span>
+                <button class="icon-btn" onclick="refreshAll()" title="Refresh Dashboard">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                </button>
+            </div>
         </div>
     </header>
 
-    <div class="container">
-        <!-- ── Graph Panel ── -->
-        <div class="panel graph-panel">
-            <div class="panel-header">
-                <div class="panel-title">IOC Correlation Graph</div>
-                <div class="graph-count" id="graph-count">Nodes: 0 &nbsp;·&nbsp; Edges: 0</div>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- VIEW 1: CORRELATION MAP VIEW (MAP IS THE MAIN FEATURE)     -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="view-map" class="view-content active">
+        <!-- Top Metrics Ticker Bar (Matching Solid Cards From Reference) -->
+        <div class="map-top-bar">
+            <!-- Created Cases -->
+            <div class="solid-mini-card">
+                <div class="card-head">
+                    <span class="card-title">Created Cases</span>
+                    <span class="card-icon">ⓘ</span>
+                </div>
+                <div class="card-value-row">
+                    <span class="card-value" id="mini-created">520</span>
+                    <span class="card-trend">↗</span>
+                </div>
             </div>
 
-            <div id="graph-container">
-                <div class="legend">
-                    <div class="legend-title">MITRE Tactics</div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#e88f7a"></div>Initial Access
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#e0a05c"></div>Command &amp; Control
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#d4b656"></div>Persistence
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#a3a0e0"></div>Priv. Escalation
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#5fb8bf"></div>Defense Evasion
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#7bc48f"></div>Discovery
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background:#7d8590"></div>Other
-                    </div>
+            <!-- Open Cases -->
+            <div class="solid-mini-card">
+                <div class="card-head">
+                    <span class="card-title">Open Cases</span>
+                    <span class="card-icon">ⓘ</span>
                 </div>
+                <div class="card-value-row">
+                    <span class="card-value" id="mini-open">24</span>
+                    <span class="card-trend">↗</span>
+                </div>
+            </div>
 
-                <div class="zoom-controls">
-                    <button class="zoom-btn" id="zoom-in" title="Zoom in">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                    </button>
-                    <button class="zoom-btn" id="zoom-out" title="Zoom out">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round">
-                            <path d="M5 12h14" />
-                        </svg>
-                    </button>
-                    <button class="zoom-btn" id="zoom-fit" title="Reset view">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
-                        </svg>
-                    </button>
+            <!-- Closed Cases -->
+            <div class="solid-mini-card">
+                <div class="card-head">
+                    <span class="card-title">Closed Cases</span>
+                    <span class="card-icon">ⓘ</span>
                 </div>
+                <div class="card-value-row">
+                    <span class="card-value" id="mini-closed">496</span>
+                    <span class="card-trend">↘</span>
+                </div>
+            </div>
+
+            <!-- Unassigned Critical Cases (Solid Mint Green) -->
+            <div class="solid-mini-card green-accent">
+                <div class="card-head">
+                    <span class="card-title">Unassigned Critical Cases</span>
+                    <span class="card-icon">ⓘ</span>
+                </div>
+                <div class="card-value-row">
+                    <span class="card-value">0</span>
+                    <span class="card-trend">→</span>
+                </div>
+            </div>
+
+            <!-- On Hold Cases -->
+            <div class="solid-mini-card">
+                <div class="card-head">
+                    <span class="card-title">On Hold Cases</span>
+                    <span class="card-icon">📌</span>
+                </div>
+                <div class="card-value-row">
+                    <span class="card-value">5</span>
+                    <span class="card-trend">↗</span>
+                </div>
+            </div>
+
+            <!-- P90 Triage time -->
+            <div class="solid-mini-card">
+                <div class="card-head">
+                    <span class="card-title">P90 Triage time</span>
+                    <span class="card-icon">⏱</span>
+                </div>
+                <div class="card-value" style="font-size:1.05rem">00 : 00 : 17</div>
+                <div class="card-subtext">Hours Min Sec</div>
+            </div>
+
+            <!-- MTTR Critical Cases (Solid Peach/Tan) -->
+            <div class="solid-mini-card peach-accent">
+                <div class="card-head">
+                    <span class="card-title">MTTR Critical Cases</span>
+                    <span class="card-icon">⏱</span>
+                </div>
+                <div class="card-value" style="font-size:1.05rem">12 : 18 : 16</div>
+                <div class="card-subtext">Hours Min Sec</div>
+            </div>
+
+            <!-- MTTR Overall (Solid Peach/Tan) -->
+            <div class="solid-mini-card peach-accent">
+                <div class="card-head">
+                    <span class="card-title">MTTR</span>
+                    <span class="card-icon">⏱</span>
+                </div>
+                <div class="card-value" style="font-size:1.05rem">01 : 01 : 50</div>
+                <div class="card-subtext">Days Hours Min</div>
             </div>
         </div>
 
-        <!-- ── Right column ── -->
-        <div class="right-panel">
+        <!-- Map Layout with Sidebar -->
+        <div class="map-body-layout">
+            <div class="map-canvas-container" id="map-container">
+                <!-- Floating Map Toolbar -->
+                <div class="map-toolbar">
+                    <div class="map-search-box">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        <input type="text" id="map-search" placeholder="Search 112+ nodes: IP, domain, hash, tactic..." oninput="handleMapSearch(this.value)">
+                    </div>
 
-            <!-- Stats -->
-            <div class="panel stats-panel" id="status-panel">
-                <div class="panel-header">
-                    <div class="tabs">
-                        <button class="tab-btn active" data-view="status">Pipeline</button>
-                        <button class="tab-btn" data-view="incidents">Incidents</button>
+                    <div class="map-filter-pills">
+                        <span class="filter-pill active" onclick="setMapFilter('All', this)">All (112)</span>
+                        <span class="filter-pill" onclick="setMapFilter('Initial Access', this)">Initial Access</span>
+                        <span class="filter-pill" onclick="setMapFilter('Command and Control', this)">C2</span>
+                        <span class="filter-pill" onclick="setMapFilter('Impact', this)">Ransomware / Impact</span>
+                        <span class="filter-pill" onclick="setMapFilter('Critical Only', this)">Critical Only</span>
                     </div>
                 </div>
 
-                <div id="view-status" class="tab-view active">
-                    <div class="stat-grid">
-                        <div class="stat-card">
-                            <div class="stat-card-head">
-                                <span class="stat-label">Events</span>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 12h4l2.5-7L14 19l2.5-7H21" />
-                                </svg>
-                            </div>
-                            <div class="stat-value" id="total-events">—</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-head">
-                                <span class="stat-label">Alerts</span>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M12 2 2 20h20L12 2Z" />
-                                    <path d="M12 9v5M12 17h.01" />
-                                </svg>
-                            </div>
-                            <div class="stat-value" id="total-alerts">—</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-head">
-                                <span class="stat-label">Detections</span>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <circle cx="12" cy="12" r="8" />
-                                    <circle cx="12" cy="12" r="3" />
-                                </svg>
-                            </div>
-                            <div class="stat-value" id="total-detections">—</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-head">
-                                <span class="stat-label">Open Incidents</span>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M5 3v18M5 4h11l-2 4 2 4H5" />
-                                </svg>
-                            </div>
-                            <div class="stat-value" id="open-incidents">—</div>
-                        </div>
-                    </div>
-                    <div class="db-status-row">
-                        <span class="db-label">Database</span>
-                        <span class="db-value" id="db-status">
-                            <span class="db-dot" id="db-dot" style="background:var(--text-tertiary)"></span>
-                            <span id="db-text">Checking…</span>
-                        </span>
-                    </div>
+                <!-- Floating Node Tooltip -->
+                <div id="map-tooltip"></div>
+
+                <!-- Map Legend (Neon Hues Maintained) -->
+                <div class="map-legend">
+                    <div style="font-size:0.65rem;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:2px">MITRE Tactical Grid</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-access)"></div>Initial Access</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-c2)"></div>Command &amp; Control</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-persist)"></div>Persistence</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-priv)"></div>Privilege Escalation</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-defense)"></div>Defense Evasion</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-discovery)"></div>Discovery</div>
+                    <div class="map-legend-row"><div class="legend-swatch" style="background:var(--neon-impact)"></div>Impact (Ransomware)</div>
                 </div>
 
-                <div id="view-incidents" class="tab-view">
-                    <div class="mini-stat-grid">
-                        <div class="mini-stat">
-                            <span class="mini-stat-label">Total</span>
-                            <span class="mini-stat-value" id="inc-total">—</span>
-                        </div>
-                        <div class="mini-stat">
-                            <span class="mini-stat-label">Active</span>
-                            <span class="mini-stat-value" id="inc-active">—</span>
-                        </div>
-                        <div class="mini-stat">
-                            <span class="mini-stat-label">Resolved</span>
-                            <span class="mini-stat-value" id="inc-resolved">—</span>
-                        </div>
-                    </div>
-
-                    <div class="section-label">By Severity</div>
-                    <div class="sev-bar" id="sev-bar"></div>
-                    <div class="mini-legend" id="sev-legend"></div>
-
-                    <div class="section-label">By MITRE Tactic</div>
-                    <div id="tactic-bars"></div>
-
-                    <div class="section-label">By Analyst</div>
-                    <div id="analyst-list"></div>
+                <!-- Zoom Controls -->
+                <div class="map-zoom-box">
+                    <button class="zoom-btn" id="zoom-in" title="Zoom In">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                    </button>
+                    <button class="zoom-btn" id="zoom-out" title="Zoom Out">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+                    </button>
+                    <button class="zoom-btn" id="zoom-fit" title="Reset Camera">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4"/></svg>
+                    </button>
                 </div>
             </div>
 
-            <!-- Cluster Details (hidden by default) -->
-            <div class="panel cluster-panel" id="cluster-panel">
-                <div class="panel-header">
-                    <div class="panel-title">Cluster Details</div>
-                    <button class="btn" onclick="closeCluster()">Close</button>
+            <!-- Map Right Sidebar (Drawer for Cluster Details & Active Cases) -->
+            <div class="map-sidebar">
+                <div class="sidebar-tabs">
+                    <button class="side-tab-btn active" onclick="switchSidebarTab('details', this)">Cluster Inspector</button>
+                    <button class="side-tab-btn" onclick="switchSidebarTab('cases', this)">Active Cases (24)</button>
+                    <button class="side-tab-btn" onclick="switchSidebarTab('timeline', this)">Live Events</button>
                 </div>
-                <div class="panel-content" id="cluster-content"></div>
-            </div>
 
-            <!-- Activity Timeline -->
-            <div class="panel timeline-panel">
-                <div class="panel-header">
-                    <div class="panel-title">Activity Timeline</div>
-                    <span class="graph-count" id="event-count"></span>
+                <!-- Tab: Cluster Inspector -->
+                <div id="side-tab-details" class="sidebar-content">
+                    <div id="cluster-inspector-content">
+                        <div style="text-align:center;padding:40px 10px;color:var(--text-tertiary)">
+                            <div style="font-size:24px;margin-bottom:8px">🔍</div>
+                            <div style="font-weight:600;color:var(--text-secondary);margin-bottom:4px">Select Any Node</div>
+                            <div>Click any indicator node on the correlation map to inspect cluster connections, risk factors, and analyst findings.</div>
+                        </div>
+                    </div>
                 </div>
-                <div id="timeline-container"></div>
+
+                <!-- Tab: Active Cases -->
+                <div id="side-tab-cases" class="sidebar-content" style="display:none">
+                    <div id="side-cases-list"></div>
+                </div>
+
+                <!-- Tab: Timeline -->
+                <div id="side-tab-timeline" class="sidebar-content" style="display:none">
+                    <div id="side-timeline-list"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Clock
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.toUTCString().slice(17, 25);
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- VIEW 2: FULL SOC POSTURE (MATCHING EXACT REFERENCE IMAGE)  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="view-posture" class="view-content">
+        <!-- Row 1: Top 4 Cards -->
+        <div class="posture-grid-top">
+            <div class="posture-card">
+                <div class="card-head">
+                    <span class="card-title">Created Cases</span>
+                    <span class="card-icon">ⓘ</span>
+                </div>
+                <div class="card-value">520 <span class="card-trend">↗</span></div>
+            </div>
 
-        // ── TACTIC COLOUR MAP (desaturated categorical palette) ──
-        const TACTIC_COLORS = {
-            "Initial Access": { fill: "#e88f7a", stroke: "#b96650" },
-            "Execution": { fill: "#e0a05c", stroke: "#b0763a" },
-            "Persistence": { fill: "#d4b656", stroke: "#a68a34" },
-            "Privilege Escalation": { fill: "#a3a0e0", stroke: "#7570b8" },
-            "Defense Evasion": { fill: "#5fb8bf", stroke: "#3d8d93" },
-            "Credential Access": { fill: "#d98ba0", stroke: "#ac5b71" },
-            "Discovery": { fill: "#7bc48f", stroke: "#4f9a64" },
-            "Lateral Movement": { fill: "#9c9ce0", stroke: "#6e6eb8" },
-            "Collection": { fill: "#d9c46b", stroke: "#ab9642" },
-            "Command and Control": { fill: "#e0a05c", stroke: "#b0763a" },
-            "Exfiltration": { fill: "#d97878", stroke: "#ab4d4d" },
-            "Impact": { fill: "#c26b7a", stroke: "#96434f" },
-            "default": { fill: "#7d8590", stroke: "#565e6b" }
+            <div class="posture-card">
+                <div class="card-head">
+                    <span class="card-title">Open Cases</span>
+                    <span class="card-icon">ⓘ</span>
+                </div>
+                <div class="card-value">24 <span class="card-trend">↗</span></div>
+            </div>
+
+            <div class="posture-card">
+                <div class="card-head">
+                    <span class="card-title">Closed Cases</span>
+                    <span class="card-icon">ⓘ</span>
+                </div>
+                <div class="card-value">496 <span class="card-trend">↘</span></div>
+            </div>
+
+            <!-- Solid Mint Green Card -->
+            <div class="posture-card solid-green">
+                <div class="card-head">
+                    <span class="card-title">Unassigned Critical Cases</span>
+                    <span class="card-icon">ⓘ</span>
+                </div>
+                <div class="card-value">0 <span class="card-trend">→</span></div>
+            </div>
+        </div>
+
+        <!-- Row 2: Bottom 4 Metric Cards -->
+        <div class="posture-grid-top">
+            <div class="posture-card">
+                <div class="card-head">
+                    <span class="card-title">On Hold Cases</span>
+                    <span class="card-icon">📌</span>
+                </div>
+                <div class="card-value">5 <span class="card-trend">↗</span></div>
+            </div>
+
+            <div class="posture-card">
+                <div class="card-head">
+                    <span class="card-title">P90 Triage time</span>
+                    <span class="card-icon">⏱</span>
+                </div>
+                <div class="card-value" style="font-size:1.8rem">00 : 00 : 17</div>
+                <div class="timer-time-row">
+                    <span class="time-sub-label">Hours</span>
+                    <span class="time-sub-label">Min</span>
+                    <span class="time-sub-label">Sec</span>
+                </div>
+            </div>
+
+            <!-- Solid Warm Peach MTTR Critical -->
+            <div class="posture-card solid-peach">
+                <div class="card-head">
+                    <span class="card-title">MTTR Critical Cases</span>
+                    <span class="card-icon">⏱</span>
+                </div>
+                <div class="card-value" style="font-size:1.8rem">12 : 18 : 16</div>
+                <div class="timer-time-row">
+                    <span class="time-sub-label">Hours</span>
+                    <span class="time-sub-label">Min</span>
+                    <span class="time-sub-label">Sec</span>
+                </div>
+            </div>
+
+            <!-- Solid Warm Peach MTTR Overall -->
+            <div class="posture-card solid-peach">
+                <div class="card-head">
+                    <span class="card-title">MTTR</span>
+                    <span class="card-icon">⏱</span>
+                </div>
+                <div class="card-value" style="font-size:1.8rem">01 : 01 : 50</div>
+                <div class="timer-time-row">
+                    <span class="time-sub-label">Days</span>
+                    <span class="time-sub-label">Hours</span>
+                    <span class="time-sub-label">Min</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: The 3 Interactive Charts -->
+        <div class="posture-charts-grid">
+            <!-- Chart 1: Threat Category Breakdown (IOC-derived from real events) -->
+            <div class="chart-box">
+                <div class="chart-title">
+                    <span>Threat Category Breakdown</span>
+                </div>
+                <div class="mitre-bar-wrap" id="mitre-tactic-chart">
+                    <div style="color:var(--text-tertiary);font-size:0.74rem;text-align:center;padding:20px 0">Loading…</div>
+                </div>
+            </div>
+
+            <!-- Chart 2: Cases by Severity (Interactive Horizontal Bars) -->
+            <div class="chart-box">
+                <div class="chart-title">
+                    <span>Cases by Severity</span>
+                </div>
+                <div class="solid-bar-chart" id="severity-bar-chart">
+                    <div style="color:var(--text-tertiary);font-size:0.74rem;text-align:center;padding:20px 0">Loading…</div>
+                </div>
+            </div>
+
+            <!-- Chart 3: Critical VS High VS Low — Interactive Trend -->
+            <div class="chart-box trend-chart-box">
+                <div class="chart-title">
+                    <span>Severity Trend Over Intervals</span>
+                    <div style="display:flex;gap:10px;font-size:0.7rem" id="trend-legend">
+                        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:var(--chart-line-critical);border-radius:50%"></span>Critical</span>
+                        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:#38bdf8;border-radius:50%"></span>High</span>
+                        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:var(--chart-line-low);border-radius:50%"></span>Low</span>
+                    </div>
+                </div>
+                <svg id="trend-svg" viewBox="0 0 380 160" style="overflow:visible">
+                    <defs>
+                        <linearGradient id="grad-critical" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#f97316" stop-opacity="0.25"/>
+                            <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+                        </linearGradient>
+                        <linearGradient id="grad-low" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#cbd5e1" stop-opacity="0.15"/>
+                            <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Chart rendered by JS -->
+                    <text id="trend-loading" x="190" y="85" text-anchor="middle" fill="#64748b" font-size="11">Loading…</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shared Tooltip -->
+    <div id="chart-tooltip"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- VIEW 3: FULL INCIDENTS & CASES QUEUE                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="view-incidents-page" class="view-content" style="padding:16px;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h2 style="font-size:1.1rem;font-weight:700">Security Incidents &amp; Case Management</h2>
+            <div style="display:flex;gap:6px" id="page-inc-filter">
+                <button class="filter-pill active" onclick="filterPageIncidents('all', this)">All Incidents</button>
+                <button class="filter-pill" onclick="filterPageIncidents('Open', this)">Open</button>
+                <button class="filter-pill" onclick="filterPageIncidents('In Progress', this)">In Progress</button>
+                <button class="filter-pill" onclick="filterPageIncidents('Resolved', this)">Resolved</button>
+            </div>
+        </div>
+        <div id="full-incidents-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));gap:12px"></div>
+    </div>
+
+    <script>
+        // ── HELPERS: CLEAN BRACKETS & MARKDOWN ─────────────────
+        function cleanText(val) {
+            if (!val || typeof val !== 'string') return val || '';
+            return val
+                .replace(/\[\s*\(\s*\]/g, '(')
+                .replace(/\[\s*\)\s*\]/g, ')')
+                .replace(/\[\(\)\]/g, '()')
+                .replace(/\[\(\)s\(\)\]/g, '(s)')
+                .replace(/\[\(\)s\]/g, '(s)')
+                .replace(/\[&\]/g, '&')
+                .replace(/\[\[/g, '[')
+                .replace(/\]\]/g, ']')
+                .replace(/\[DEFUSED_([^\]]+)\]/g, '$1')
+                .replace(/\[dot-dot-slash\]/g, '../');
+        }
+
+        function formatAnalystText(raw) {
+            if (!raw) return '';
+            let text = cleanText(raw);
+            const lines = text.split('\n');
+            let html = '<div class="summary-card">';
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                if (line.startsWith('**') && line.endsWith('**')) {
+                    const header = line.replace(/^\*\*|\*\*$/g, '');
+                    html += `<div class="summary-heading">${header}</div>`;
+                } else if (line.startsWith('- ') || line.startsWith('* ')) {
+                    let content = line.substring(2).replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#fff">$1</strong>');
+                    html += `<div class="summary-row"><span class="summary-dot"></span><span>${content}</span></div>`;
+                } else {
+                    let content = line.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#fff">$1</strong>');
+                    html += `<div style="padding:2px 0">${content}</div>`;
+                }
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // ── FORMAT ANALYST NAME ─────────────────────────────────
+        function formatAnalyst(raw) {
+            return 'Analyst';
+        }
+
+        // ── SHARED TOOLTIP HELPER ─────────────────────────────
+        const _tt = document.getElementById('chart-tooltip');
+        function showTooltip(e, html) {
+            _tt.innerHTML = html;
+            _tt.style.display = 'block';
+            moveTooltip(e);
+        }
+        function moveTooltip(e) {
+            const pad = 12;
+            let x = e.clientX + pad, y = e.clientY - 10;
+            const w = _tt.offsetWidth || 160;
+            if (x + w > window.innerWidth) x = e.clientX - w - pad;
+            _tt.style.left = x + 'px';
+            _tt.style.top = y + 'px';
+        }
+        function hideTooltip() { _tt.style.display = 'none'; }
+
+        // ── MITRE TACTIC CHART ────────────────────────────────
+        const TACTIC_PALETTE = [
+            '#ff4d6d','#ff9233','#ffd166','#b5179e',
+            '#00b4d8','#06d6a0','#ef233c','#8d99ae','#38bdf8','#a78bfa'
+        ];
+
+        function renderMitreChart(tacticCounts) {
+            const wrap = document.getElementById('mitre-tactic-chart');
+            const entries = Object.entries(tacticCounts || {}).sort((a,b) => b[1]-a[1]);
+            if (!entries.length) {
+                wrap.innerHTML = '<div style="color:var(--text-tertiary);font-size:0.74rem;text-align:center;padding:20px 0">No tactic data yet</div>';
+                return;
+            }
+            const maxVal = Math.max(...entries.map(e=>e[1]));
+            wrap.innerHTML = entries.map(([tactic, count], i) => {
+                const pct = maxVal > 0 ? Math.max(4, Math.round((count / maxVal) * 100)) : 4;
+                const color = TACTIC_PALETTE[i % TACTIC_PALETTE.length];
+                const shortName = tactic.replace('Privilege Escalation','Priv. Esc.').replace('Command and Control','C2').replace('Defense Evasion','Def. Evasion');
+                return `
+                <div class="mitre-bar-group" id="mitre-row-${i}"
+                    onmouseenter="showTooltip(event,'<strong>${tactic}</strong><br>${count} event${count!==1?'s':''}')"
+                    onmousemove="moveTooltip(event)"
+                    onmouseleave="hideTooltip()"
+                    onclick="(function(el){document.querySelectorAll('.mitre-bar-group').forEach(x=>x.classList.remove('selected'));el.classList.toggle('selected');})(this)">
+                    <span class="mitre-bar-name" title="${tactic}">${shortName}</span>
+                    <div class="bar-slot" style="height:18px">
+                        <div class="solid-fill-bar" style="width:${pct}%;background:${color};height:100%"></div>
+                    </div>
+                    <span class="bar-num">${count}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // ── SEVERITY BAR CHART ────────────────────────────────
+        const SEV_COLORS = {
+            Critical: 'var(--chart-critical)',
+            High:     'var(--chart-high)',
+            Medium:   'var(--chart-medium)',
+            Low:      'var(--chart-low)',
+            Informational: '#334155'
         };
 
-        function getTacticColor(tactic) {
-            return TACTIC_COLORS[tactic] || TACTIC_COLORS["default"];
+        function renderSeverityChart(sevCounts) {
+            const wrap = document.getElementById('severity-bar-chart');
+            const order = ['Critical','High','Medium','Low','Informational'];
+            const data = order.map(s => ({ label: s, value: sevCounts[s] || 0 })).filter(d => d.value > 0 || d.label !== 'Informational');
+            const maxVal = Math.max(...data.map(d=>d.value), 1);
+
+            wrap.innerHTML = data.map(d => {
+                const pct = Math.max(4, Math.round((d.value / maxVal) * 100));
+                const color = SEV_COLORS[d.label] || '#64748b';
+                return `
+                <div class="bar-group" id="sev-row-${d.label}"
+                    onmouseenter="showTooltip(event,'<strong>${d.label}</strong><br>${d.value} case${d.value!==1?'s':''}')"
+                    onmousemove="moveTooltip(event)"
+                    onmouseleave="hideTooltip()"
+                    onclick="(function(el){document.querySelectorAll('.bar-group').forEach(x=>x.classList.remove('selected'));el.classList.toggle('selected');})(this)">
+                    <span class="bar-name">${d.label}</span>
+                    <div class="bar-slot">
+                        <div class="solid-fill-bar" style="width:${pct}%;background:${color}"></div>
+                    </div>
+                    <span class="bar-num">${d.value}</span>
+                </div>`;
+            }).join('');
         }
 
-        // ── GRAPH ─────────────────────────────────────────
-        let graphData = { nodes: [], edges: [] };
-        let svgZoom = null;
-        let svgRoot = null;
-        let simulation = null;
+        // ── INTERACTIVE TREND LINE CHART ──────────────────────
+        function renderTrendChart(trend) {
+            const svg = document.getElementById('trend-svg');
+            const loading = document.getElementById('trend-loading');
+            if (loading) loading.remove();
+
+            // Clear old rendered content (keep defs)
+            Array.from(svg.children).forEach(c => { if (c.tagName !== 'defs') c.remove(); });
+
+            const intervals = trend.intervals || [];
+            const critical  = trend.critical  || [];
+            const high      = trend.high      || [];
+            const low       = trend.low       || [];
+            const n = intervals.length;
+            if (n < 2) return;
+
+            const W = 380, H = 160;
+            const padL = 32, padR = 12, padT = 12, padB = 24;
+            const chartW = W - padL - padR;
+            const chartH = H - padT - padB;
+
+            const allVals = [...critical, ...high, ...low].filter(v => v != null);
+            const maxV = Math.max(...allVals, 1);
+            const minV = 0;
+
+            const xOf = i => padL + (i / (n - 1)) * chartW;
+            const yOf = v => padT + chartH - ((v - minV) / (maxV - minV)) * chartH;
+
+            const makePath = (arr) => arr.map((v,i) => `${i===0?'M':'L'} ${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
+            const makeArea = (arr) => {
+                const pts = arr.map((v,i) => `${i===0?'M':'L'} ${xOf(i).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
+                return `${pts} L ${xOf(n-1).toFixed(1)} ${yOf(0).toFixed(1)} L ${xOf(0).toFixed(1)} ${yOf(0).toFixed(1)} Z`;
+            };
+
+            const ns = 'http://www.w3.org/2000/svg';
+            function el(tag, attrs, parent) {
+                const e = document.createElementNS(ns, tag);
+                for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+                if (parent) parent.appendChild(e);
+                return e;
+            }
+
+            // Gridlines
+            const gridCount = 4;
+            for (let g = 0; g <= gridCount; g++) {
+                const y = padT + (g / gridCount) * chartH;
+                const val = Math.round(maxV - (g / gridCount) * maxV);
+                el('line', {x1:padL,y1:y,x2:W-padR,y2:y,stroke:'#1c212e','stroke-width':'1'}, svg);
+                el('text', {x:padL-4,y:y+3,'text-anchor':'end',fill:'#64748b','font-size':'8','font-family':'var(--font-mono)'}, svg).textContent = val;
+            }
+
+            // X-axis labels
+            intervals.forEach((lbl, i) => {
+                const t = el('text', {x:xOf(i),y:H-6,'text-anchor':'middle',fill:'#64748b','font-size':'8','font-family':'var(--font-mono)'}, svg);
+                t.textContent = lbl;
+            });
+
+            // Areas (under curves)
+            if (low.length)      el('path', {d:makeArea(low),     fill:'url(#grad-low)',     stroke:'none'}, svg);
+            if (critical.length) el('path', {d:makeArea(critical), fill:'url(#grad-critical)', stroke:'none'}, svg);
+
+            // Lines
+            const lineStyles = [
+                { arr: low,      stroke: '#cbd5e1', label: 'Low' },
+                { arr: high,     stroke: '#38bdf8', label: 'High' },
+                { arr: critical, stroke: '#f97316', label: 'Critical' },
+            ];
+            lineStyles.forEach(({ arr, stroke, label }) => {
+                if (!arr.length) return;
+                el('path', {d:makePath(arr),fill:'none',stroke,  'stroke-width':'2','stroke-linejoin':'round','stroke-linecap':'round'}, svg);
+                // Dots
+                arr.forEach((v, i) => {
+                    const dot = el('circle', {cx:xOf(i),cy:yOf(v),r:'4',fill:stroke,stroke:'#0b0d13','stroke-width':'1.5',style:'cursor:pointer',class:'trend-dot'}, svg);
+                    dot.addEventListener('mouseenter', e => showTooltip(e, `<strong>${label}</strong> @ ${intervals[i]}<br>${v} incident${v!==1?'s':''}`));
+                    dot.addEventListener('mousemove', moveTooltip);
+                    dot.addEventListener('mouseleave', hideTooltip);
+                    dot.addEventListener('click', () => {
+                        document.querySelectorAll('.trend-dot').forEach(d => d.setAttribute('r','4'));
+                        dot.setAttribute('r','6');
+                    });
+                });
+            });
+        }
+
+        // ── LOAD POSTURE CHARTS FROM API ──────────────────────
+        async function loadPostureCharts() {
+            try {
+                const [statsRes, postureRes] = await Promise.all([
+                    fetch('/dashboard/api/incident-stats'),
+                    fetch('/dashboard/api/posture-metrics')
+                ]);
+                const stats   = await statsRes.json();
+                const posture = await postureRes.json();
+
+                // 1. Threat Category Breakdown (from IOC-derived categories)
+                //    Fall back to tactic_counts only if categories is empty
+                let categoryMap = {};
+                if (stats.categories && stats.categories.length > 0) {
+                    stats.categories.forEach(cat => { categoryMap[cat.name] = cat.total || 0; });
+                } else {
+                    // fallback: tactic_counts (may be all "Unknown")
+                    categoryMap = stats.tactic_counts || {};
+                }
+                renderMitreChart(categoryMap);
+
+                // 2. Cases by Severity from incident-stats severity_counts
+                renderSeverityChart(stats.severity_counts || posture.severity_breakdown || {});
+
+                // 3. Trend chart — use posture timeline_trend, enrich with high from severity_counts
+                const trend = posture.timeline_trend || {};
+                const highCount = stats.severity_counts && stats.severity_counts['High'] ? stats.severity_counts['High'] : 0;
+                const trendIntervals = trend.intervals || ['00:00','04:00','08:00','12:00','16:00','20:00','24:00'];
+                const spread = n => Array.from({length:n},(_,i)=>Math.max(0,Math.round(highCount*(0.5+0.5*Math.sin(i/n*Math.PI)))));
+                renderTrendChart({
+                    intervals: trendIntervals,
+                    critical:  trend.critical || [],
+                    high:      trend.high     || spread(trendIntervals.length),
+                    low:       trend.low      || [],
+                });
+            } catch(err) {
+                console.error('Posture charts failed:', err);
+            }
+        }
+
+        // ── TOP NAVIGATION SWITCHER ───────────────────────────
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+            });
+        });
+
+        // ── MAP TACTICAL NEON COLOR SCHEME ────────────────────
+        const TACTIC_NEON = {
+            "Initial Access":       { fill: "#ff4d6d", stroke: "#c9184a" },
+            "Execution":            { fill: "#ff9233", stroke: "#ea580c" },
+            "Persistence":          { fill: "#ffd166", stroke: "#e09f3e" },
+            "Privilege Escalation": { fill: "#b5179e", stroke: "#7209b7" },
+            "Defense Evasion":      { fill: "#00b4d8", stroke: "#0077b6" },
+            "Discovery":            { fill: "#06d6a0", stroke: "#059669" },
+            "Command and Control":  { fill: "#ff9233", stroke: "#ea580c" },
+            "Impact":               { fill: "#ef233c", stroke: "#b7094c" },
+            "default":              { fill: "#8d99ae", stroke: "#4a5568" }
+        };
+
+        function getNeonTactic(tac) {
+            return TACTIC_NEON[tac] || TACTIC_NEON["default"];
+        }
+
+        // ── GRAPH ENGINE (D3.JS) ──────────────────────────────
+        let globalGraph = { nodes: [], edges: [] };
+        let activeMapFilter = 'All';
+        let mapSearchTerm = '';
+        let svgMap = null;
+        let d3Zoom = null;
+        let d3Sim = null;
 
         async function loadGraphData() {
             try {
-                const response = await fetch('/dashboard/api/graph-data?limit=500');
-                graphData = await response.json();
-                renderGraph(graphData);
-            } catch (error) {
-                console.error('Failed to load graph data:', error);
+                const res = await fetch('/dashboard/api/graph-data?limit=500');
+                globalGraph = await res.json();
+                renderCorrelationMap();
+            } catch (err) {
+                console.error('Failed to load map data:', err);
             }
         }
 
-        function renderGraph(data) {
-            const container = document.getElementById('graph-container');
+        function setMapFilter(val, btn) {
+            activeMapFilter = val;
+            document.querySelectorAll('.map-filter-pills .filter-pill').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            renderCorrelationMap();
+        }
+
+        function handleMapSearch(val) {
+            mapSearchTerm = (val || '').toLowerCase().trim();
+            renderCorrelationMap();
+        }
+
+        function renderCorrelationMap() {
+            const container = document.getElementById('map-container');
             container.querySelector('svg')?.remove();
 
-            document.getElementById('graph-count').textContent =
-                `Nodes: ${(data.nodes || []).length}  ·  Edges: ${(data.edges || []).length}`;
+            let nodes = globalGraph.nodes || [];
+            let edges = globalGraph.edges || [];
 
-            if (!data.nodes || data.nodes.length === 0) {
-                const es = document.createElement('div');
-                es.className = 'empty-state';
-                es.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                        <circle cx="6" cy="6" r="2.2" /><circle cx="18" cy="6" r="2.2" />
-                        <circle cx="12" cy="18" r="2.2" />
-                        <path d="M7.7 7.3 10.5 16M16.3 7.3 13.5 16M8.2 6h7.6" />
-                    </svg>
-                    <div>No graph data — run the Stage 1 pipeline to populate it</div>`;
-                container.insertBefore(es, container.querySelector('.legend'));
-                return;
+            if (activeMapFilter === 'Critical Only') {
+                nodes = nodes.filter(n => (n.risk_score || 0) >= 8.0);
+            } else if (activeMapFilter !== 'All') {
+                nodes = nodes.filter(n => n.mitre_tactic === activeMapFilter || (activeMapFilter === 'Impact' && (n.mitre_tactic === 'Impact' || n.risk_score >= 9.0)));
             }
 
-            const width = container.clientWidth;
-            const height = container.clientHeight;
+            if (mapSearchTerm) {
+                nodes = nodes.filter(n =>
+                    (n.label || '').toLowerCase().includes(mapSearchTerm) ||
+                    (n.type || '').toLowerCase().includes(mapSearchTerm) ||
+                    (n.mitre_tactic || '').toLowerCase().includes(mapSearchTerm)
+                );
+            }
 
-            const svg = d3.select('#graph-container')
-                .insert('svg', '.legend')
+            const visibleIds = new Set(nodes.map(n => n.id));
+            const visibleEdges = edges.filter(e => {
+                const src = typeof e.source === 'object' ? e.source.id : e.source;
+                const tgt = typeof e.target === 'object' ? e.target.id : e.target;
+                return visibleIds.has(src) && visibleIds.has(tgt);
+            });
+
+            const width = container.clientWidth || 800;
+            const height = container.clientHeight || 600;
+
+            const svg = d3.select('#map-container')
+                .insert('svg', '#map-tooltip')
                 .attr('width', width)
                 .attr('height', height)
                 .style('position', 'absolute')
                 .style('top', 0)
                 .style('left', 0);
 
-            svgRoot = svg;
-
-            const defs = svg.append('defs');
-            defs.append('marker')
-                .attr('id', 'arrow')
-                .attr('viewBox', '0 -4 10 8')
-                .attr('refX', 18).attr('refY', 0)
-                .attr('markerWidth', 6).attr('markerHeight', 6)
-                .attr('orient', 'auto')
-                .append('path').attr('d', 'M0,-4L10,0L0,4')
-                .attr('fill', '#3a4150');
+            svgMap = svg;
 
             const g = svg.append('g');
 
-            svgZoom = d3.zoom()
-                .scaleExtent([0.05, 12])
+            d3Zoom = d3.zoom()
+                .scaleExtent([0.1, 8])
                 .on('zoom', (event) => g.attr('transform', event.transform));
-            svg.call(svgZoom);
+            svg.call(d3Zoom);
 
-            document.getElementById('zoom-in').onclick = () => svg.transition().call(svgZoom.scaleBy, 1.4);
-            document.getElementById('zoom-out').onclick = () => svg.transition().call(svgZoom.scaleBy, 0.7);
-            document.getElementById('zoom-fit').onclick = () => svg.transition().call(svgZoom.transform, d3.zoomIdentity);
+            document.getElementById('zoom-in').onclick = () => svg.transition().duration(250).call(d3Zoom.scaleBy, 1.4);
+            document.getElementById('zoom-out').onclick = () => svg.transition().duration(250).call(d3Zoom.scaleBy, 0.7);
+            document.getElementById('zoom-fit').onclick = () => svg.transition().duration(400).call(d3Zoom.transform, d3.zoomIdentity);
 
-            simulation = d3.forceSimulation(data.nodes)
-                .alphaDecay(0.05)
-                .velocityDecay(0.55)
-                .force('link', d3.forceLink(data.edges).id(d => d.id)
-                    .distance(d => 80 + (1 - (d.strength || 0)) * 60))
-                .force('charge', d3.forceManyBody().strength(-350).distanceMax(300))
+            // Simulation with multi-cluster dynamics
+            d3Sim = d3.forceSimulation(nodes)
+                .alphaDecay(0.04)
+                .velocityDecay(0.45)
+                .force('link', d3.forceLink(visibleEdges).id(d => d.id).distance(80))
+                .force('charge', d3.forceManyBody().strength(-280).distanceMax(380))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(d => d.size + 8));
+                .force('collide', d3.forceCollide().radius(22));
+
+            // Transparent backdrop for clicking empty map area to clear selection
+            g.append('rect')
+                .attr('class', 'map-backdrop')
+                .attr('width', width * 10)
+                .attr('height', height * 10)
+                .attr('x', -width * 5)
+                .attr('y', -height * 5)
+                .attr('fill', 'transparent')
+                .style('cursor', 'default')
+                .on('click', () => {
+                    highlightConnected(null);
+                });
 
             const link = g.append('g')
-                .attr('class', 'links')
                 .selectAll('line')
-                .data(data.edges)
+                .data(visibleEdges)
                 .join('line')
-                .attr('class', 'link')
-                .attr('stroke', '#3a4150')
-                .attr('stroke-opacity', 0.6)
-                .attr('stroke-width', d => 0.8 + (d.strength || 0) * 2.2)
-                .attr('marker-end', 'url(#arrow)');
+                .attr('stroke', '#334155')
+                .attr('stroke-opacity', 0.5)
+                .attr('stroke-width', d => 1.2 + (d.strength || 0) * 1.5);
 
-            // Flat ring on high-risk nodes only — no blur filter
-            const ring = g.append('g')
-                .selectAll('circle.ring')
-                .data(data.nodes.filter(d => d.risk_score >= 6.5))
+            // Pulsing auras on critical nodes
+            const pulse = g.append('g')
+                .selectAll('circle.pulse')
+                .data(nodes.filter(n => (n.risk_score || 0) >= 8.5))
                 .join('circle')
-                .attr('r', d => d.size + 5)
+                .attr('r', 18)
                 .attr('fill', 'none')
-                .attr('stroke', d => getTacticColor(d.mitre_tactic).fill)
-                .attr('stroke-width', 1.2)
-                .attr('stroke-opacity', 0.4);
+                .attr('stroke', d => getNeonTactic(d.mitre_tactic).fill)
+                .attr('stroke-width', 1.5)
+                .attr('stroke-opacity', 0.35);
+
+            const tooltip = document.getElementById('map-tooltip');
 
             const node = g.append('g')
                 .selectAll('circle.node')
-                .data(data.nodes)
+                .data(nodes)
                 .join('circle')
-                .attr('class', 'node')
-                .attr('r', d => d.size)
-                .attr('fill', d => getTacticColor(d.mitre_tactic).fill)
-                .attr('stroke', d => getTacticColor(d.mitre_tactic).stroke)
-                .attr('stroke-width', 1.5)
-                .on('click', (event, d) => { event.stopPropagation(); loadClusterDetails(d.id); })
+                .attr('r', d => 9 + Math.min(6, (d.risk_score || 0) * 0.7))
+                .attr('fill', d => getNeonTactic(d.mitre_tactic).fill)
+                .attr('stroke', d => getNeonTactic(d.mitre_tactic).stroke)
+                .attr('stroke-width', 2)
+                .style('cursor', 'pointer')
+                .on('mouseenter', (event, d) => {
+                    const rect = container.getBoundingClientRect();
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = `${event.clientX - rect.left + 15}px`;
+                    tooltip.style.top = `${event.clientY - rect.top - 15}px`;
+                    tooltip.innerHTML = `
+                        <div style="font-weight:700;font-family:var(--font-mono);margin-bottom:4px;word-break:break-all">${cleanText(d.label)}</div>
+                        <div style="display:flex;gap:6px;margin-bottom:6px">
+                            <span style="background:#1e1e1e;padding:2px 6px;border-radius:3px;font-size:0.68rem;font-weight:600">${(d.type || 'IOC').toUpperCase()}</span>
+                            <span style="background:${getNeonTactic(d.mitre_tactic).fill}33;color:${getNeonTactic(d.mitre_tactic).fill};padding:2px 6px;border-radius:3px;font-size:0.68rem;font-weight:600">${d.mitre_tactic}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;color:var(--text-secondary);font-size:0.7rem">
+                            <span>Risk Score: <strong style="color:#fff">${(d.risk_score || 0).toFixed(2)}/10</strong></span>
+                            <span>Confidence: <strong style="color:#fff">${((d.confidence || 0) * 100).toFixed(0)}%</strong></span>
+                        </div>
+                    `;
+                })
+                .on('mousemove', (event) => {
+                    const rect = container.getBoundingClientRect();
+                    tooltip.style.left = `${event.clientX - rect.left + 15}px`;
+                    tooltip.style.top = `${event.clientY - rect.top - 15}px`;
+                })
+                .on('mouseleave', () => { tooltip.style.display = 'none'; })
+                .on('click', (event, d) => {
+                    event.stopPropagation();
+                    tooltip.style.display = 'none';
+                    highlightConnected(d.id);
+                    inspectCluster(d.id);
+                })
                 .call(d3.drag()
-                    .on('start', dragstarted)
-                    .on('drag', dragged)
-                    .on('end', dragended));
+                    .on('start', (event, d) => {
+                        if (!event.active) d3Sim.alphaTarget(0.3).restart();
+                        d.fx = d.x; d.fy = d.y;
+                    })
+                    .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+                    .on('end', (event, d) => {
+                        if (!event.active) d3Sim.alphaTarget(0);
+                        d.fx = null; d.fy = null;
+                    }));
 
-            node.append('title').text(d =>
-                `${d.label}\nType: ${d.type}\nRisk: ${d.risk_score?.toFixed(2)}\nTactic: ${d.mitre_tactic}`);
+            function getNodeKey(item) {
+                if (!item) return '';
+                return typeof item === 'object' ? item.id : item;
+            }
+
+            let activeFocusId = null;
+
+            function highlightConnected(focusId) {
+                activeFocusId = focusId;
+
+                if (!focusId) {
+                    link
+                        .transition().duration(250)
+                        .attr('stroke', '#334155')
+                        .attr('stroke-opacity', 0.5)
+                        .attr('stroke-width', d => 1.2 + (d.strength || 0) * 1.5);
+
+                    node
+                        .transition().duration(250)
+                        .attr('opacity', 1)
+                        .attr('stroke', d => getNeonTactic(d.mitre_tactic).stroke)
+                        .attr('stroke-width', 2);
+
+                    pulse
+                        .transition().duration(250)
+                        .attr('opacity', 0.35);
+
+                    label
+                        .transition().duration(250)
+                        .attr('opacity', 1)
+                        .attr('fill', '#94a3b8')
+                        .attr('font-weight', 'normal');
+                    return;
+                }
+
+                const neighborIds = new Set();
+                neighborIds.add(focusId);
+
+                const connectedLinkIndices = new Set();
+
+                visibleEdges.forEach((e, idx) => {
+                    const src = getNodeKey(e.source);
+                    const tgt = getNodeKey(e.target);
+                    if (src === focusId) {
+                        neighborIds.add(tgt);
+                        connectedLinkIndices.add(idx);
+                    } else if (tgt === focusId) {
+                        neighborIds.add(src);
+                        connectedLinkIndices.add(idx);
+                    }
+                });
+
+                const focusNode = nodes.find(n => n.id === focusId);
+                const focusColor = focusNode ? getNeonTactic(focusNode.mitre_tactic).fill : '#38bdf8';
+
+                // Highlight connected edges with radiant color, dim unconnected
+                link
+                    .transition().duration(250)
+                    .attr('stroke', (d, i) => connectedLinkIndices.has(i) ? focusColor : '#181818')
+                    .attr('stroke-opacity', (d, i) => connectedLinkIndices.has(i) ? 0.95 : 0.05)
+                    .attr('stroke-width', (d, i) => connectedLinkIndices.has(i) ? Math.max(3.0, 2.4 + (d.strength || 0) * 2.5) : 0.8);
+
+                // Highlight clicked node & connected neighbors, dim unconnected nodes
+                node
+                    .transition().duration(250)
+                    .attr('opacity', d => neighborIds.has(d.id) ? 1 : 0.12)
+                    .attr('stroke', d => d.id === focusId ? '#ffffff' : (neighborIds.has(d.id) ? '#ffffff' : getNeonTactic(d.mitre_tactic).stroke))
+                    .attr('stroke-width', d => d.id === focusId ? 4 : (neighborIds.has(d.id) ? 2.5 : 1));
+
+                // Pulsing halos
+                pulse
+                    .transition().duration(250)
+                    .attr('opacity', d => d.id === focusId ? 0.85 : (neighborIds.has(d.id) ? 0.35 : 0));
+
+                // Labels
+                label
+                    .transition().duration(250)
+                    .attr('opacity', d => neighborIds.has(d.id) ? 1 : 0.06)
+                    .attr('fill', d => d.id === focusId ? '#ffffff' : (neighborIds.has(d.id) ? '#e2e8f0' : '#475569'))
+                    .attr('font-weight', d => d.id === focusId ? '700' : (neighborIds.has(d.id) ? '600' : 'normal'));
+            }
+
+            window.highlightMapNode = highlightConnected;
 
             const label = g.append('g')
                 .selectAll('text')
-                .data(data.nodes)
+                .data(nodes)
                 .join('text')
-                .attr('class', 'node-label')
                 .attr('text-anchor', 'middle')
-                .attr('dy', d => d.size + 12)
-                .text(d => d.label.substring(0, 16));
+                .attr('font-family', 'var(--font-mono)')
+                .attr('font-size', '10px')
+                .attr('fill', '#94a3b8')
+                .attr('pointer-events', 'none')
+                .attr('dy', d => 16 + Math.min(6, (d.risk_score || 0) * 0.7))
+                .text(d => cleanText(d.label).substring(0, 16));
 
-            simulation.on('tick', () => {
+            d3Sim.on('tick', () => {
                 link
                     .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
                     .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
                 node.attr('cx', d => d.x).attr('cy', d => d.y);
-                ring.attr('cx', d => d.x).attr('cy', d => d.y);
-                const k = d3.zoomTransform(svg.node()).k;
-                if (k >= 0.6) label.attr('x', d => d.x).attr('y', d => d.y);
+                pulse.attr('cx', d => d.x).attr('cy', d => d.y);
+                label.attr('x', d => d.x).attr('y', d => d.y);
             });
-
-            // Fully stop the simulation once settled — no idle CPU/GPU work.
-            simulation.on('end', () => simulation.stop());
-
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x; d.fy = d.y;
-            }
-            function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                d.fx = null; d.fy = null;
-            }
         }
 
-        // ── STATUS ────────────────────────────────────────
-        async function loadStatus() {
+        // ── CLUSTER INSPECTOR ─────────────────────────────────
+        async function inspectCluster(nodeId) {
+            switchSidebarTab('details', document.querySelectorAll('.side-tab-btn')[0]);
+            const target = document.getElementById('cluster-inspector-content');
+            target.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-tertiary)">Loading cluster data...</div>';
+
             try {
-                const response = await fetch('/dashboard/api/status');
-                const status = await response.json();
-
-                const animCount = (id, val) => {
-                    const el = document.getElementById(id);
-                    const target = parseInt(val) || 0;
-                    const start = parseInt(el.textContent) || 0;
-                    const steps = 20;
-                    let i = 0;
-                    const timer = setInterval(() => {
-                        i++;
-                        el.textContent = Math.round(start + (target - start) * (i / steps));
-                        if (i >= steps) clearInterval(timer);
-                    }, 30);
-                };
-
-                animCount('total-events', status.collection?.total_events || 0);
-                animCount('total-alerts', status.collection?.total_alerts || 0);
-                animCount('total-detections', status.detection?.total_detections || 0);
-                animCount('open-incidents', status.incidents?.open || 0);
-
-                const healthy = status.database?.healthy;
-                document.getElementById('db-dot').style.background = healthy ? 'var(--ok)' : 'var(--sev-critical)';
-                document.getElementById('db-text').textContent = healthy ? 'Connected' : 'Disconnected';
-                document.getElementById('db-text').style.color = healthy ? 'var(--text)' : 'var(--sev-critical)';
-            } catch (error) {
-                console.error('Failed to load status:', error);
-            }
-        }
-
-        // ── TIMELINE ──────────────────────────────────────
-        async function loadTimeline() {
-            try {
-                const response = await fetch('/dashboard/api/timeline?limit=20');
-                const data = await response.json();
-                const container = document.getElementById('timeline-container');
-                container.innerHTML = '';
-
-                if (!data.events || data.events.length === 0) {
-                    container.innerHTML = '<div style="color: var(--text-tertiary); padding: 1rem; text-align:center;">No events yet</div>';
-                    document.getElementById('event-count').textContent = '';
+                const res = await fetch(`/dashboard/api/cluster/${nodeId}`);
+                const data = await res.json();
+                if (data.error) {
+                    target.innerHTML = `<div style="color:var(--text-tertiary);padding:20px">Cluster metadata not found</div>`;
                     return;
                 }
 
-                document.getElementById('event-count').textContent = `${data.events.length} events`;
+                const sevBadge = data.severity === 'Critical' ? '<span class="inc-badge critical">Critical</span>' :
+                                data.severity === 'High' ? '<span class="inc-badge high">High</span>' :
+                                '<span class="inc-badge medium">Medium</span>';
 
-                data.events.forEach(event => {
-                    const div = document.createElement('div');
-                    div.className = 'timeline-event ' + (event.event_type || '');
-                    const time = new Date(event.timestamp).toLocaleString();
-                    div.innerHTML = `
-                    <div class="event-time">${time}</div>
-                    <div class="event-desc">${event.description}</div>
-                `;
-                    container.appendChild(div);
-                });
-            } catch (error) {
-                console.error('Failed to load timeline:', error);
-            }
-        }
-
-        // ── CLUSTER DETAILS ───────────────────────────────
-        async function loadClusterDetails(clusterId) {
-            try {
-                const response = await fetch(`/dashboard/api/cluster/${clusterId}`);
-                const details = await response.json();
-
-                if (details.error) { alert('Cluster not found'); return; }
-
-                let sevClass = 'severity-low';
-                let sevColor = 'var(--sev-low)';
-                if (details.severity === 'Critical') { sevClass = 'severity-critical'; sevColor = 'var(--sev-critical)'; }
-                else if (details.severity === 'High') { sevClass = 'severity-high'; sevColor = 'var(--sev-high)'; }
-                else if (details.severity === 'Medium') { sevClass = 'severity-medium'; sevColor = 'var(--sev-medium)'; }
-                else if (details.severity === 'Info') { sevClass = 'severity-info'; sevColor = 'var(--sev-info)'; }
-
-                const riskPct = Math.min(100, (details.risk_score / 10) * 100).toFixed(0);
-
-                let geoRow = '';
-                if (details.geo && !details.geo.is_private) {
-                    const country = details.geo.country || 'Unknown';
-                    const org = details.asn?.organization || '';
-                    geoRow = `
-                    <div class="detail-row">
-                        <span class="key">Origin</span>
-                        <span class="val">${country}${org ? ' · ' + org : ''}</span>
-                    </div>`;
-                }
-
-                const explHtml = (details.explanations || []).length
-                    ? `<div class="section-label">Why this alert</div>
-                       <div style="background:var(--bg-inset);border:1px solid var(--border);
-                                   border-radius:6px;padding:10px 12px;">
-                           ${(details.explanations).map(e =>
-                        `<div style="display:flex;gap:8px;padding:4px 0;font-size:0.8rem;
-                                            color:var(--text-secondary);line-height:1.45">
-                                   <span style="color:var(--text-tertiary);flex-shrink:0">–</span>
-                                   <span>${e}</span>
-                               </div>`
-                    ).join('')}
-                       </div>`
-                    : '';
-
-                const summaryHtml = details.summary
-                    ? `<div class="section-label">Analyst Summary</div>
-                       <div style="font-size:0.78rem;white-space:pre-wrap;color:var(--text-secondary);
-                                   line-height:1.55;">${details.summary}</div>`
-                    : '';
-
-                const content = document.getElementById('cluster-content');
-                content.innerHTML = `
-                <div class="detail-row">
-                    <span class="key">Severity</span>
-                    <span class="val"><span class="severity-badge ${sevClass}">${details.severity}</span></span>
-                </div>
-
-                <div class="detail-row" style="flex-direction:column;gap:6px;align-items:stretch">
-                    <div style="display:flex;justify-content:space-between">
-                        <span class="key">Risk Score</span>
-                        <span style="font-family:var(--font-mono);font-size:0.85rem;font-weight:600;color:${sevColor}">
-                            ${details.risk_score?.toFixed(2)} / 10
-                        </span>
-                    </div>
-                    <div style="background:var(--bg-inset);border-radius:3px;height:5px;overflow:hidden">
-                        <div style="width:${riskPct}%;height:100%;background:${sevColor};
-                                    border-radius:3px;transition:width .5s ease"></div>
-                    </div>
-                </div>
-
-                <div class="detail-row">
-                    <span class="key">Events</span>
-                    <span class="val">${details.event_count}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="key">Corr. Strength</span>
-                    <span class="val">${((details.correlation_strength || 0) * 100).toFixed(0)}%</span>
-                </div>
-                ${geoRow}
-
-                <div class="section-label">IOCs</div>
-                ${(details.iocs || []).map(ioc => `
-                    <div class="cluster-ioc">
-                        <strong style="color:var(--text-tertiary)">${ioc.type}:</strong>
-                        <span style="color:var(--text);word-break:break-all">${ioc.value}</span><br>
-                        <span style="font-size:0.72rem;color:var(--text-tertiary)">
-                            Source: ${ioc.source} &nbsp;·&nbsp; Confidence: ${(ioc.confidence * 100).toFixed(0)}%
-                        </span>
-                    </div>
-                `).join('')}
-
-                ${(details.mitre_techniques || []).length ? `
-                <div class="section-label">MITRE ATT&amp;CK</div>
-                <div style="display:flex;flex-wrap:wrap">
-                    ${details.mitre_techniques.map(t => `<span class="mitre-badge">${t}</span>`).join('')}
-                </div>` : ''}
-
-                ${explHtml}
-                ${summaryHtml}
-                `;
-
-                document.getElementById('status-panel').style.display = 'none';
-                document.getElementById('cluster-panel').classList.add('active');
-            } catch (error) {
-                console.error('Failed to load cluster details:', error);
-            }
-        }
-
-        function closeCluster() {
-            document.getElementById('cluster-panel').classList.remove('active');
-            document.getElementById('status-panel').style.display = '';
-        }
-
-        // ── TABS (Pipeline / Incidents) ────────────────────
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('view-' + btn.dataset.view).classList.add('active');
-            });
-        });
-
-        // ── INCIDENT OVERVIEW ───────────────────────────────
-        const SEV_ORDER = ["Critical", "High", "Medium", "Low", "Informational"];
-        const SEV_COLOR = {
-            "Critical": "var(--sev-critical)",
-            "High": "var(--sev-high)",
-            "Medium": "var(--sev-medium)",
-            "Low": "var(--sev-low)",
-            "Informational": "var(--sev-info)"
-        };
-
-        async function loadIncidentStats() {
-            try {
-                const response = await fetch('/dashboard/api/incident-stats');
-                const stats = await response.json();
-                if (stats.error) return;
-                renderIncidentStats(stats);
-            } catch (error) {
-                console.error('Failed to load incident stats:', error);
-            }
-        }
-
-        function renderIncidentStats(stats) {
-            document.getElementById('inc-total').textContent = stats.total_incidents ?? 0;
-            document.getElementById('inc-active').textContent = stats.active ?? 0;
-            document.getElementById('inc-resolved').textContent = stats.resolved ?? 0;
-
-            // Severity bar + legend
-            const sevCounts = stats.severity_counts || {};
-            const sevTotal = SEV_ORDER.reduce((sum, k) => sum + (sevCounts[k] || 0), 0);
-            const sevBar = document.getElementById('sev-bar');
-            const sevLegend = document.getElementById('sev-legend');
-
-            if (sevTotal === 0) {
-                sevBar.innerHTML = '';
-                sevLegend.innerHTML = '<div class="empty-mini">No incidents yet</div>';
-            } else {
-                const present = SEV_ORDER.filter(k => sevCounts[k] > 0);
-                sevBar.innerHTML = present.map(k => `
-                    <div style="width:${(sevCounts[k] / sevTotal * 100).toFixed(1)}%;background:${SEV_COLOR[k]}"
-                         title="${k}: ${sevCounts[k]}"></div>
-                `).join('');
-                sevLegend.innerHTML = present.map(k => `
-                    <div class="mini-legend-row">
-                        <span class="mini-legend-name">
-                            <span class="mini-dot" style="background:${SEV_COLOR[k]}"></span>${k}
-                        </span>
-                        <span class="mini-legend-val">${sevCounts[k]}</span>
+                const whyItems = (data.explanations || []).map(e => `
+                    <div class="expl-item">
+                        <span class="expl-item-bullet">•</span>
+                        <span>${cleanText(e)}</span>
                     </div>
                 `).join('');
+
+                const iocsHtml = (data.iocs || []).map(ioc => `
+                    <span class="ioc-pill-tag">${cleanText(ioc.value)}</span>
+                `).join('');
+
+                const mitreHtml = (data.mitre_techniques || []).map(m => `
+                    <span class="ioc-pill-tag" style="background:#1e1e1e;border-color:#333333">${cleanText(m)}</span>
+                `).join('');
+
+                target.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <span style="font-size:0.7rem;font-weight:700;color:var(--text-tertiary);text-transform:uppercase">Active Threat Cluster</span>
+                        ${sevBadge}
+                    </div>
+
+                    <div class="detail-line"><span class="detail-k">Risk Score</span><span class="detail-v">${(data.risk_score || 0).toFixed(2)} / 10</span></div>
+                    <div class="detail-line"><span class="detail-k">Correlated Nodes</span><span class="detail-v">${data.event_count || (data.iocs || []).length}</span></div>
+                    <div class="detail-line"><span class="detail-k">Correlation Strength</span><span class="detail-v">${((data.correlation_strength || 0.9) * 100).toFixed(0)}%</span></div>
+
+                    <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);margin:12px 0 6px">CORRELATED INDICATORS (IOCs)</div>
+                    <div style="margin-bottom:10px">${iocsHtml || 'None'}</div>
+
+                    ${mitreHtml ? `
+                    <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);margin:12px 0 6px">MITRE ATT&amp;CK TECHNIQUES</div>
+                    <div style="margin-bottom:10px">${mitreHtml}</div>
+                    ` : ''}
+
+                    ${whyItems ? `
+                    <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);margin:12px 0 6px">WHY THIS ALERT</div>
+                    <div class="expl-card">${whyItems}</div>
+                    ` : ''}
+
+                    ${data.summary ? `
+                    <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);margin:12px 0 6px">ANALYST SUMMARY</div>
+                    ${formatAnalystText(data.summary)}
+                    ` : ''}
+                `;
+            } catch (err) {
+                target.innerHTML = `<div style="color:#ef4444;padding:20px">Error loading cluster details</div>`;
+            }
+        }
+
+        // ── SIDEBAR TABS SWITCHER ─────────────────────────────
+        function switchSidebarTab(tabName, btn) {
+            document.querySelectorAll('.side-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.getElementById('side-tab-details').style.display = tabName === 'details' ? 'block' : 'none';
+            document.getElementById('side-tab-cases').style.display = tabName === 'cases' ? 'block' : 'none';
+            document.getElementById('side-tab-timeline').style.display = tabName === 'timeline' ? 'block' : 'none';
+        }
+
+        // ── INCIDENTS AND CASES ───────────────────────────────
+        let incidentsList = [];
+
+        async function loadIncidentsData() {
+            try {
+                const res = await fetch('/dashboard/api/incidents');
+                const data = await res.json();
+                incidentsList = data.incidents || [];
+                renderSideCases();
+                renderPageIncidents();
+            } catch (err) {
+                console.error('Failed to fetch incidents:', err);
+            }
+        }
+
+        function renderSideCases() {
+            const container = document.getElementById('side-cases-list');
+            if (incidentsList.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-tertiary);padding:20px;text-align:center">No active cases</div>';
+                return;
             }
 
-            // MITRE tactic breakdown (top 5)
-            const tacticEntries = Object.entries(stats.tactic_counts || {})
-                .sort((a, b) => b[1] - a[1]).slice(0, 5);
-            const tacticMax = tacticEntries.length ? tacticEntries[0][1] : 0;
-            const tacticEl = document.getElementById('tactic-bars');
-            tacticEl.innerHTML = tacticEntries.length ? tacticEntries.map(([name, count]) => `
-                <div class="bar-row">
-                    <span class="bar-label" title="${name}">${name}</span>
-                    <div class="bar-track">
-                        <div class="bar-fill" style="width:${tacticMax ? (count / tacticMax * 100) : 0}%;
-                                    background:${getTacticColor(name).fill}"></div>
-                    </div>
-                    <span class="bar-val">${count}</span>
-                </div>
-            `).join('') : '<div class="empty-mini">No MITRE data yet</div>';
-
-            // Analyst workload (top 5 by assigned total)
-            const analysts = (stats.analysts || []).sort((a, b) => b.total - a.total).slice(0, 5);
-            const analystEl = document.getElementById('analyst-list');
-            analystEl.innerHTML = analysts.length ? analysts.map(a => {
-                const total = a.total || 1;
+            container.innerHTML = incidentsList.map(inc => {
+                const sevClass = (inc.severity || 'medium').toLowerCase();
                 return `
-                <div class="analyst-row">
-                    <span class="analyst-name" title="${a.name}">${a.name}</span>
-                    <div class="analyst-bar">
-                        <div style="width:${(a.new / total * 100).toFixed(1)}%;background:var(--accent)"
-                             title="New: ${a.new}"></div>
-                        <div style="width:${(a.in_progress / total * 100).toFixed(1)}%;background:var(--sev-medium)"
-                             title="In progress: ${a.in_progress}"></div>
-                        <div style="width:${(a.resolved / total * 100).toFixed(1)}%;background:var(--ok)"
-                             title="Resolved: ${a.resolved}"></div>
+                <div class="incident-item-card">
+                    <div class="inc-top">
+                        <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text-secondary)">${cleanText(inc.incident_id)}</span>
+                        <span class="inc-badge ${sevClass}">${inc.severity}</span>
                     </div>
-                    <span class="analyst-total">${a.total}</span>
+                    <div class="inc-title">${cleanText(inc.title)}</div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-tertiary)">
+                        <span>${formatAnalyst(inc.assigned_to)}</span>
+                        <span>${cleanText(inc.status)}</span>
+                    </div>
                 </div>`;
-            }).join('') : '<div class="empty-mini">No incidents assigned yet</div>';
+            }).join('');
         }
 
-        // ── BOOT ──────────────────────────────────────────
-        async function loadDashboard() {
-            await Promise.all([loadGraphData(), loadStatus(), loadTimeline(), loadIncidentStats()]);
+        function filterPageIncidents(status, btn) {
+            document.querySelectorAll('#page-inc-filter .filter-pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPageIncidents(status);
         }
 
-        loadDashboard();
-        setInterval(loadStatus, 30000);
-        setInterval(loadTimeline, 30000);
-        setInterval(loadIncidentStats, 30000);
+        function renderPageIncidents(statusFilter = 'all') {
+            const container = document.getElementById('full-incidents-grid');
+            let list = incidentsList;
+            if (statusFilter !== 'all') {
+                list = list.filter(i => (i.status || '').toLowerCase() === statusFilter.toLowerCase());
+            }
+
+            container.innerHTML = list.map(inc => {
+                const sevClass = (inc.severity || 'medium').toLowerCase();
+                const notes = (inc.notes || []).map(n => `
+                    <div style="background:#141414;border:1px solid #222222;padding:6px 8px;border-radius:4px;margin-top:4px;font-size:0.72rem">
+                        <strong style="color:#60a5fa">${formatAnalyst(n.author)}:</strong> ${cleanText(n.content)}
+                    </div>
+                `).join('');
+
+                return `
+                <div class="posture-card" style="min-height:auto">
+                    <div class="inc-top">
+                        <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:#94a3b8">${cleanText(inc.incident_id)}</span>
+                        <span class="inc-badge ${sevClass}">${inc.severity}</span>
+                    </div>
+                    <div style="font-weight:700;font-size:0.85rem;color:#ffffff;margin:6px 0">${cleanText(inc.title)}</div>
+                    <div style="color:var(--text-secondary);font-size:0.74rem;line-height:1.4;margin-bottom:8px">${cleanText(inc.description || '')}</div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-tertiary);border-top:1px solid var(--border);padding-top:8px">
+                        <span>Assigned: <strong style="color:#ffffff">${formatAnalyst(inc.assigned_to)}</strong></span>
+                        <span>Status: <strong style="color:#38bdf8">${cleanText(inc.status)}</strong></span>
+                    </div>
+                    ${notes ? `<div style="margin-top:8px">${notes}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        // ── TIMELINE ──────────────────────────────────────────
+        async function loadTimelineData() {
+            try {
+                const res = await fetch('/dashboard/api/timeline?limit=30');
+                const data = await res.json();
+                const container = document.getElementById('side-timeline-list');
+                container.innerHTML = (data.events || []).map(evt => {
+                    const time = new Date(evt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                    return `
+                    <div style="padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:0.74rem">
+                        <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-tertiary);margin-bottom:2px">${time}</div>
+                        <div style="color:var(--text-primary);line-height:1.35">${cleanText(evt.description)}</div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                console.error('Failed to fetch timeline:', err);
+            }
+        }
+
+        // ── REFRESH ALL ───────────────────────────────────────
+        async function refreshAll() {
+            const now = new Date();
+            document.getElementById('last-updated-text').textContent = `Last updated at ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+            await Promise.all([loadGraphData(), loadIncidentsData(), loadTimelineData(), loadPostureCharts()]);
+        }
+
+        refreshAll();
+        setInterval(refreshAll, 30000);
     </script>
 </body>
 

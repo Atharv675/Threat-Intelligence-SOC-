@@ -208,10 +208,10 @@ python demo.py       # collects from OSINT sources, runs the 9-stage pipeline, p
 python demo_soc.py   # ingests sample logs, runs detection, creates and updates a test incident
 ```
 
-Once running:
-- Dashboard: http://localhost:8000/dashboard
-- API docs: http://localhost:8000/docs
-- Health check: http://localhost:8000/health
+Once running (via Docker):
+- Dashboard: http://localhost:8005/dashboard
+- API docs: http://localhost:8005/docs
+- Health check: http://localhost:8005/health
 
 ## Environment variables
 

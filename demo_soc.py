@@ -193,7 +193,7 @@ async def demo_stage2() -> None:
                 ),
                 severity="High",
                 detections=detection_ids,
-                assigned_to="analyst@soc.local",
+                assigned_to="Analyst",
             )
             print(f"✅ Incident created: {incident_id}\n")
 
@@ -202,19 +202,19 @@ async def demo_stage2() -> None:
                 incident_id=incident_id,
                 new_status="In Progress",
                 note="Triage started — cross-referencing with OSINT alerts.",
-                author="analyst@soc.local",
+                author="Analyst",
             )
             print("✅ Status updated\n")
 
             print("📝 Adding investigation notes...")
             await incident_manager.add_note(
                 incident_id=incident_id,
-                author="analyst@soc.local",
+                author="Analyst",
                 content="Confirmed IOC matches known threat actor infrastructure via OpenPhish feed.",
             )
             await incident_manager.add_note(
                 incident_id=incident_id,
-                author="analyst@soc.local",
+                author="Analyst",
                 content="Blocked at perimeter firewall. Monitoring for lateral movement.",
             )
             print("✅ Notes added\n")

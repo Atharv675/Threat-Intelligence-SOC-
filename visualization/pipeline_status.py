@@ -81,6 +81,10 @@ class PipelineStatus:
                     "healthy": db_healthy,
                     "collections": ["events", "alerts", "detections", "incidents"]
                 },
+                "total_events": total_events,
+                "total_alerts": total_alerts,
+                "total_detections": total_detections,
+                "open_incidents": open_incidents,
                 "timestamp": datetime.utcnow().isoformat()
             }
             
