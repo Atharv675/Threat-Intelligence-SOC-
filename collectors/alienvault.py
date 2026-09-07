@@ -1,4 +1,5 @@
 """AlienVault OTX collector for threat intelligence."""
+import httpx
 from collectors.base import BaseCollector
 from typing import List, Dict, Any
 from utils.logger import get_logger

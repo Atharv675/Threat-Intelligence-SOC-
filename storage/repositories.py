@@ -1,6 +1,7 @@
 """Repository pattern for MongoDB operations."""
 from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo import ReplaceOne
 from storage.models import (
     EventDocument, AlertDocument, DetectionDocument, IncidentDocument,
     EVENT_INDEXES, ALERT_INDEXES, DETECTION_INDEXES, INCIDENT_INDEXES
@@ -26,43 +27,51 @@ class EventRepository:
     async def create_indexes(self) -> None:
         """Create collection indexes."""
         for index in EVENT_INDEXES:
-            await self.collection.create_index(index)
+            # event_id is a stable, content-derived hash (see CorrelationEngine) —
+            # enforce it as unique so re-collecting the same IOC can never
+            # duplicate a node in the graph.
+            unique = index == [("event_id", 1)]
+            await self.collection.create_index(index, unique=unique)
         logger.info("event_indexes_created")
-    
+
     async def insert_one(self, event: Dict[str, Any]) -> str:
         """
-        Insert a single event document.
-        
+        Insert or update a single event document, keyed by event_id.
+
         Args:
             event: Event data dictionary
-            
+
         Returns:
             Event ID
         """
         # Sanitize input
         sanitized = Sanitizer.sanitize_dict(event) if isinstance(event, dict) else event
-        
+
         # Generate unique ID if not present
         if "event_id" not in sanitized:
             sanitized["event_id"] = str(uuid.uuid4())
-        
-        result = await self.collection.insert_one(sanitized)
+
+        # Upsert on event_id: collecting the same IOC again refreshes its
+        # enrichment/correlation in place instead of creating a duplicate.
+        await self.collection.replace_one(
+            {"event_id": sanitized["event_id"]}, sanitized, upsert=True
+        )
         logger.info("event_inserted", event_id=sanitized["event_id"])
         return sanitized["event_id"]
-    
+
     async def insert_many(self, events: List[Dict[str, Any]]) -> List[str]:
         """
-        Insert multiple event documents.
-        
+        Insert or update multiple event documents, keyed by event_id.
+
         Args:
             events: List of event data dictionaries
-            
+
         Returns:
             List of event IDs
         """
         if not events:
             return []
-        
+
         # Sanitize and add IDs
         sanitized_events = []
         event_ids = []
@@ -72,8 +81,13 @@ class EventRepository:
                 sanitized["event_id"] = str(uuid.uuid4())
             event_ids.append(sanitized["event_id"])
             sanitized_events.append(sanitized)
-        
-        await self.collection.insert_many(sanitized_events)
+
+        # Bulk upsert on event_id — same reasoning as insert_one, batched.
+        operations = [
+            ReplaceOne({"event_id": doc["event_id"]}, doc, upsert=True)
+            for doc in sanitized_events
+        ]
+        await self.collection.bulk_write(operations, ordered=False)
         logger.info("events_inserted", count=len(event_ids))
         return event_ids
     

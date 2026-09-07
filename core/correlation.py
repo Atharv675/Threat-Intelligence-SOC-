@@ -67,14 +67,14 @@ class CorrelationEngine:
             score = 0.0
             matched = False
 
-            # Same IOC type (IP, URL, domain, etc.)
-            if event.type == other.type:
-                score += weights["same_type"]
-                matched = True
-
-            # Same source feed
-            if event.source == other.source:
-                score += weights["same_source"]
+            # Same IOC type AND same source feed, together. Either one alone
+            # is too weak/generic to mean anything — a single OSINT feed
+            # reports many unrelated indicators of the same type — but the
+            # combination is a real signal, and requiring both keeps a feed
+            # that reports mixed IOC types (url/ip/domain/hash) from folding
+            # into one giant blob purely because it's "the same source."
+            if event.type == other.type and event.source == other.source:
+                score += weights["same_type"] + weights["same_source"]
                 matched = True
 
             # Same ASN (only for IP IOCs that have ASN data)

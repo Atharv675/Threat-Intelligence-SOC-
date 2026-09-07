@@ -71,8 +71,17 @@ class Normalizer:
         Returns:
             Normalized event
         """
+        # Abuse.ch now feeds url/ip (URLhaus, Feodo) as well as domain/hash
+        # (ThreatFox) — map each explicitly instead of collapsing everything
+        # that isn't "url" into IP.
+        type_mapping = {
+            "url": IOCType.URL,
+            "ip": IOCType.IP,
+            "domain": IOCType.DOMAIN,
+            "hash": IOCType.HASH,
+        }
         ioc_type_str = raw_data.get("type", "url").lower()
-        ioc_type = IOCType.URL if ioc_type_str == "url" else IOCType.IP
+        ioc_type = type_mapping.get(ioc_type_str, IOCType.IP)
         value = Sanitizer.sanitize_string(raw_data.get("value", ""), max_length=500)
         
         # Abuse.ch data is high confidence but varies between 0.75–0.95
