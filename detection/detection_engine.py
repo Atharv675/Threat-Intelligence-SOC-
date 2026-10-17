@@ -8,6 +8,8 @@ import re
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from storage.repositories import EventRepository
 from utils.logger import get_logger
+from detection.dga_classifier import DGAClassifier
+from utils.config import settings
 
 logger = get_logger(__name__)
 
@@ -15,6 +17,9 @@ logger = get_logger(__name__)
 _FAILED_LOGINS = defaultdict(list)
 _SCANNING_REQUESTS = defaultdict(list)
 _DNS_QUERIES = defaultdict(list)
+
+# Module-level DGA classifier singleton — loaded lazily on first DNS event.
+_dga_classifier = DGAClassifier()
 
 
 class DetectionEngine:
@@ -199,7 +204,7 @@ class DetectionEngine:
                     _DNS_QUERIES[client_ip].append((now, domain))
                     _DNS_QUERIES[client_ip] = [item for item in _DNS_QUERIES[client_ip] if now - item[0] <= 10]
                     
-                    # Count unique domains queried
+                    # ── Existing rule: 5+ unique domains in 10s ────────────
                     unique_domains = set(item[1] for item in _DNS_QUERIES[client_ip])
                     if len(unique_domains) >= 5:
                         _DNS_QUERIES[client_ip] = []
@@ -221,6 +226,55 @@ class DetectionEngine:
                             "description": f"High rate of unique DNS domain queries from {client_ip} within 10 seconds (suspected DGA/tunneling)."
                         }
                         logger.info("behavioral_detection_created", rule="Dynamic Resolution DGA", client_ip=client_ip)
+                        return detection
+
+                # ── ML-based DGA scoring (T1568.002) ──────────────────────
+                # Load IOC cache once so we can skip already-known domains.
+                ioc_map = await self._load_ioc_cache()
+                domain_lower = domain.lower() if domain else ""
+
+                # Skip if already flagged as an IOC (no double alert).
+                # Skip if the domain is in the configured allowlist.
+                _allowlist = [d.lower() for d in getattr(settings, "dga_allowlist", [])]
+                if (
+                    domain_lower
+                    and domain_lower not in ioc_map
+                    and domain_lower not in _allowlist
+                ):
+                    dga_score = _dga_classifier.predict_proba(domain_lower)
+                    if dga_score is not None and dga_score >= settings.dga_threshold:
+                        now = time.time()
+                        detection = {
+                            "detection_id": str(uuid.uuid4()),
+                            "log_type": "dns",
+                            "matched_ioc": domain_lower,
+                            "matched_field": "domain",
+                            "ioc_source": "DGA ML Classifier",
+                            "ioc_type": "dga",
+                            "confidence": round(dga_score, 4),
+                            "log_event": log_event,
+                            "threat_event_id": f"dga-ml-T1568.002-{int(now)}",
+                            "timestamp": datetime.utcnow(),
+                            "mitre_techniques": ["T1568.002"],
+                            "mitre_tactic": "Command and Control",
+                            "rule_name": "DGA Domain Detected – ML Classifier (T1568.002)",
+                            "description": (
+                                f"Domain '{domain}' scored {dga_score:.4f} by the DGA ML "
+                                f"classifier (threshold={settings.dga_threshold}). "
+                                "Consistent with algorithmically generated domain names."
+                            ),
+                            "details": {
+                                "dga_score": round(dga_score, 6),
+                                "dga_threshold": settings.dga_threshold,
+                                "scored_domain": domain_lower,
+                            },
+                        }
+                        logger.info(
+                            "dga_detection_created",
+                            domain=domain_lower,
+                            dga_score=dga_score,
+                            client_ip=client_ip,
+                        )
                         return detection
 
             # ── 2. Standard Static IOC Lookup Check ──────────────────────────

@@ -125,6 +125,9 @@ async def demo_stage2() -> None:
             ("auth",  _make_auth_log("192.168.1.100")),  # Third failed login triggers T1110
         ]
 
+        # Add DGA query to demonstrate ML classifier detection (T1568.002)
+        SAMPLE_LOGS.append(("dns", _make_dns_log("bowjjxxnhkyvygk.biz", client_ip="192.168.1.188")))
+
         # ── PART 1: Log Ingestion & Detection ────────────────────────────────
         print("─" * 80)
         print("PART 1: LOG INGESTION & DETECTION")

@@ -91,6 +91,7 @@ SOC/
   - **SSH brute force (T1110)** — 3+ failed auth attempts from one source IP within 60s.
   - **Active scanning (T1595)** — 5+ suspicious/403/404 nginx requests from one client IP within 60s.
   - **DGA/tunneling (T1568)** — 5+ unique domains queried by one client IP within 10s.
+  - **DGA ML classifier (T1568.002)** — each queried domain is also scored by a RandomForest model trained on 50k Tranco benign domains + baderj DGA families. Domains above `DGA_THRESHOLD` (default 0.9) generate a separate detection. The model is loaded lazily from `models/dga_model.joblib`; if the file is missing the rule is silently skipped.
 
 Because the counters are in-process, they do not survive a process restart and will not work correctly if you run more than one API worker/replica without moving that state into a shared store.
 
@@ -129,6 +130,9 @@ All endpoints are rate-limited (default 60 req/min/IP, configurable via `RATE_LI
 - `GET /api/v1/incidents/{id}`
 - `PUT /api/v1/incidents/{id}/status`
 - `POST /api/v1/incidents/{id}/notes`
+- `POST /api/v1/incidents/{id}/report` — generate grounded LLM/template incident report (rate limit: 5/min)
+- `POST /api/v1/incidents/{id}/investigate` — run read-only autonomous investigation agent (rate limit: 3/min)
+- `GET /api/v1/incidents/{id}/investigations` — list past investigation audit records for an incident
 
 **Dashboard** (read-only, prefix `/dashboard`)
 - `GET /dashboard` — HTML page
@@ -224,6 +228,13 @@ Once running (via Docker):
 | `RATE_LIMIT_DEFAULT` | `60` | No | Requests/minute/IP |
 | `LOG_LEVEL` | `INFO` | No | |
 | `ENVIRONMENT` | `development` | No | Not currently branched on in code |
+| `DGA_THRESHOLD` | `0.9` | No | DGA ML classifier probability threshold. Range [0,1]. Lower = more sensitive, more FPs. |
+| `DGA_ALLOWLIST` | CDN/cloud domains | No | JSON list of domains never scored by the DGA classifier (e.g. `["amazonaws.com","cloudfront.net"]`) |
+| `LLM_PROVIDER` | `none` | No | LLM provider: `none`, `ollama`, `openai`, `anthropic`, `gemini`. When `none`, falls back to deterministic template |
+| `LLM_MODEL` | none | No | Model name (e.g., `llama3`, `gpt-4o-mini`, `claude-3-5-haiku-20241022`, `gemini-1.5-flash`) |
+| `LLM_API_KEY` | none | No | API key for the chosen LLM provider |
+| `LLM_BASE_URL` | none | No | Optional base URL override (e.g., for local Ollama `http://localhost:11434` or custom endpoints) |
+| `LLM_TIMEOUT_SECONDS` | `20` | No | Timeout in seconds for LLM HTTP requests |
 
 ## Known limitations
 
@@ -234,8 +245,27 @@ Once running (via Docker):
 
 ## Testing
 
-There's no automated test suite. To smoke-test manually:
+**Automated tests (pytest):**
+```bash
+pip install -r requirements.txt
+pytest tests/ -v
+```
 
+Tests cover: feature extraction edge cases, missing model file graceful fallback, end-to-end detection logic for random vs legitimate domains, LLM incident reporting and strict fact-grounding checks, and investigator agent isolation (zero write/mutation reachability, 8-call max, loop prevention, fake evidence dropping).
+
+**Investigator Agent Evaluation Suite:**
+```bash
+python tests/eval/run_eval.py --mock
+```
+Runs the agent against 10 realistic benchmark incidents (`tests/eval/cases/case_01.json` through `case_10.json`), measuring entity recall, finding evidence validity, tool-call efficiency, and rejected steps.
+
+**Training the DGA model** (required before the ML rule activates):
+```bash
+python scripts/train_dga.py
+```
+This downloads ~50k Tranco benign domains and DGA domains from the baderj repo, trains RandomForest + LogisticRegression, picks the best by F1, and saves `models/dga_model.joblib` + `models/dga_metrics.json`.
+
+**Manual smoke tests:**
 ```bash
 python demo.py
 python demo_soc.py

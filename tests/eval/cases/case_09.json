@@ -1,0 +1,58 @@
+{
+  "id": "case_09",
+  "name": "Network Service Discovery Scan",
+  "description": "Scanning probes identifying open internal ports across subnet",
+  "incident": {
+    "incident_id": "inc-eval-09",
+    "title": "Port Sweep and Discovery",
+    "description": "Rapid SYN sweeps across common service ports",
+    "status": "Open",
+    "severity": "Low",
+    "related_detections": [
+      "det-eval-09"
+    ],
+    "related_alerts": [],
+    "created_at": "2026-10-17T11:20:00Z"
+  },
+  "detections": [
+    {
+      "detection_id": "det-eval-09",
+      "log_type": "nginx",
+      "matched_ioc": "192.0.2.14",
+      "matched_field": "client_ip",
+      "ioc_source": "Behavioral Heuristics Engine",
+      "ioc_type": "ip",
+      "confidence": 0.75,
+      "mitre_techniques": [
+        "T1046"
+      ],
+      "rule_name": "Network Service Discovery (T1046)",
+      "log_event": {
+        "client_ip": "192.0.2.14",
+        "path": "/"
+      },
+      "timestamp": "2026-10-17T11:20:01Z"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "evt-eval-09",
+      "type": "ip",
+      "value": "192.0.2.14",
+      "source": "AlienVault",
+      "risk_score": 4.5,
+      "mitre_techniques": [
+        "T1046"
+      ]
+    }
+  ],
+  "expected": {
+    "expected_entities": [
+      "192.0.2.14"
+    ],
+    "expected_stage": "Discovery",
+    "expected_techniques": [
+      "T1046"
+    ]
+  }
+}

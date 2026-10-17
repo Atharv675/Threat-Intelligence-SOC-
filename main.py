@@ -1,6 +1,9 @@
 """FastAPI application for Threat Intelligence Aggregator."""
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, Depends, HTTPException, Request
+# pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse
+# pyrefly: ignore [missing-import]
 from fastapi.staticfiles import StaticFiles  # Added for static file support
 from contextlib import asynccontextmanager
 from typing import List, Dict, Any
@@ -9,7 +12,7 @@ from utils.logger import setup_logging, get_logger
 from utils.config import settings
 from storage import (
     Database, get_db, EventRepository, AlertRepository,
-    DetectionRepository, IncidentRepository
+    DetectionRepository, IncidentRepository, InvestigationRepository
 )
 from security import limiter, CollectRequest, AlertQueryParams
 from ingestion import EventIngestor, AuthLogEvent, NginxLogEvent, DnsLogEvent
@@ -18,7 +21,8 @@ from core.incident_manager import IncidentManager, IncidentStatus, IncidentSever
 from collectors import AlienVaultCollector, AbuseDBCollector, OpenPhishCollector
 from core import (
     Normalizer, Enrichment, CorrelationEngine, MITREMapper,
-    RiskScoring, AlertGenerator, AnalystSummary
+    RiskScoring, AlertGenerator, AnalystSummary, IncidentReportService,
+    InvestigatorAgent
 )
 from visualization import dashboard_router
 
@@ -40,10 +44,12 @@ async def lifespan(app: FastAPI):
     alert_repo = AlertRepository(db)
     detection_repo = DetectionRepository(db)
     incident_repo = IncidentRepository(db)
+    investigation_repo = InvestigationRepository(db)
     await event_repo.create_indexes()
     await alert_repo.create_indexes()
     await detection_repo.create_indexes()
     await incident_repo.create_indexes()
+    await investigation_repo.create_indexes()
     
     logger.info("application_ready")
     yield
@@ -578,6 +584,111 @@ async def add_incident_note(
         raise HTTPException(status_code=500, detail="Failed to add note")
 
 
+@app.post("/api/v1/incidents/{incident_id}/report")
+@limiter.limit("5/minute")
+async def generate_incident_report(
+    request: Request,
+    incident_id: str,
+    db = Depends(get_db)
+):
+    """
+    Generate and save an incident report using LLM or deterministic template fallback.
+    Strictly read-only with respect to incident status, severity, and risk scores.
+    """
+    try:
+        report_service = IncidentReportService(db)
+        report = await report_service.generate_and_save_report(incident_id)
+        return report
+    except ValueError as e:
+        logger.warning("incident_report_generation_not_found", incident_id=incident_id, error=str(e))
+        raise HTTPException(status_code=404, detail="Incident not found")
+    except Exception as e:
+        logger.error("incident_report_generation_failed", incident_id=incident_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to generate incident report")
+
+
+@app.get("/api/v1/incidents/{incident_id}/report")
+@limiter.limit(f"{settings.rate_limit_default}/minute")
+async def get_incident_report(
+    request: Request,
+    incident_id: str,
+    db = Depends(get_db)
+):
+    """Retrieve the latest saved report for an incident."""
+    try:
+        incident_repo = IncidentRepository(db)
+        report = await incident_repo.get_latest_report(incident_id)
+        if not report:
+            incident = await incident_repo.find_by_id(incident_id)
+            if not incident:
+                raise HTTPException(status_code=404, detail="Incident not found")
+            raise HTTPException(status_code=404, detail="Report not found for this incident")
+        return report
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("incident_report_retrieval_failed", incident_id=incident_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve incident report")
+
+
+@app.post("/api/v1/incidents/{incident_id}/investigate")
+@limiter.limit("3/minute")
+async def investigate_incident(
+    request: Request,
+    incident_id: str,
+    db = Depends(get_db)
+):
+    """
+    Run an autonomous, strictly read-only investigation on an incident.
+    Persists execution audit record and returns final investigation report.
+    """
+    try:
+        incident_repo = IncidentRepository(db)
+        incident = await incident_repo.find_by_id(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        agent = InvestigatorAgent(db)
+        result = await agent.investigate(incident_id)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("incident_investigation_failed", incident_id=incident_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to execute incident investigation")
+
+
+@app.get("/api/v1/incidents/{incident_id}/investigations")
+@limiter.limit(f"{settings.rate_limit_default}/minute")
+async def get_incident_investigations(
+    request: Request,
+    incident_id: str,
+    skip: int = 0,
+    limit: int = 20,
+    db = Depends(get_db)
+):
+    """Retrieve history of past investigations for an incident."""
+    try:
+        incident_repo = IncidentRepository(db)
+        incident = await incident_repo.find_by_id(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        investigation_repo = InvestigationRepository(db)
+        runs = await investigation_repo.find_by_incident_id(incident_id, skip=skip, limit=limit)
+        return {
+            "incident_id": incident_id,
+            "total": len(runs),
+            "investigations": runs
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("incident_investigations_retrieval_failed", incident_id=incident_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve incident investigations")
+
+
 if __name__ == "__main__":
+    # pyrefly: ignore [missing-import]
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

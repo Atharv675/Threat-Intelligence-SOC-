@@ -1,0 +1,45 @@
+{
+  "best_model": "RandomForest",
+  "feature_order": [
+    "label_length",
+    "shannon_entropy",
+    "vowel_ratio",
+    "digit_ratio",
+    "longest_consonant_run",
+    "digit_count",
+    "bigram_score"
+  ],
+  "data_sources": {
+    "benign": "https://tranco-list.eu/top-1m.csv.zip",
+    "dga": "https://raw.githubusercontent.com/andrewaeva/DGA/master/all_dga.txt"
+  },
+  "train_test_split": "80/20 stratified",
+  "models": {
+    "RandomForest": {
+      "accuracy": 0.984,
+      "precision": 0.978261,
+      "recall": 0.99,
+      "f1": 0.984095,
+      "false_positive_rate": 0.022,
+      "confusion_matrix": {
+        "TN": 978,
+        "FP": 22,
+        "FN": 10,
+        "TP": 990
+      }
+    },
+    "LogisticRegression": {
+      "accuracy": 0.9645,
+      "precision": 0.962189,
+      "recall": 0.967,
+      "f1": 0.964589,
+      "false_positive_rate": 0.038,
+      "confusion_matrix": {
+        "TN": 962,
+        "FP": 38,
+        "FN": 33,
+        "TP": 967
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "id": "case_10",
+  "name": "High-Confidence Known C2 Infrastructure Match",
+  "description": "Inbound connection from known state-sponsored C2 IP",
+  "incident": {
+    "incident_id": "inc-eval-10",
+    "title": "Known APT C2 Communication",
+    "description": "Direct traffic match against threat intelligence IOC feed",
+    "status": "Open",
+    "severity": "Critical",
+    "related_detections": [
+      "det-eval-10"
+    ],
+    "related_alerts": [],
+    "created_at": "2026-10-17T11:30:00Z"
+  },
+  "detections": [
+    {
+      "detection_id": "det-eval-10",
+      "log_type": "auth",
+      "matched_ioc": "185.220.101.5",
+      "matched_field": "source_ip",
+      "ioc_source": "AlienVault OTX",
+      "ioc_type": "ip",
+      "confidence": 0.99,
+      "mitre_techniques": [
+        "T1071"
+      ],
+      "rule_name": "Known Malicious C2 IP (T1071)",
+      "log_event": {
+        "source_ip": "185.220.101.5",
+        "user": "guest"
+      },
+      "timestamp": "2026-10-17T11:30:01Z"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "evt-eval-10",
+      "type": "ip",
+      "value": "185.220.101.5",
+      "source": "AlienVault",
+      "risk_score": 10.0,
+      "mitre_techniques": [
+        "T1071"
+      ]
+    }
+  ],
+  "expected": {
+    "expected_entities": [
+      "185.220.101.5"
+    ],
+    "expected_stage": "Command and Control",
+    "expected_techniques": [
+      "T1071"
+    ]
+  }
+}

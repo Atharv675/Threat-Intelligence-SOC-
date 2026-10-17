@@ -108,6 +108,7 @@ class IncidentDocument(BaseModel):
     notes: List[Dict[str, Any]] = Field(default_factory=list, description="Incident notes")
     related_detections: List[str] = Field(default_factory=list, description="Detection IDs")
     related_alerts: List[str] = Field(default_factory=list, description="Alert IDs")
+    report: Optional[Dict[str, Any]] = Field(None, description="Last generated incident report")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     
@@ -131,5 +132,31 @@ INCIDENT_INDEXES = [
     [("created_at", -1)],  # Sort by creation timestamp descending
     [("status", 1)],
     [("severity", 1)],
+]
+
+
+class InvestigationDocument(BaseModel):
+    """MongoDB document model for investigations collection."""
+
+    investigation_id: str = Field(..., description="Unique investigation identifier")
+    incident_id: str = Field(..., description="Target incident ID")
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list, description="Tool execution telemetry")
+    step_count: int = Field(0, description="Total agent loop steps executed")
+    duration_seconds: float = Field(0.0, description="Investigation execution duration in seconds")
+    final_output: Dict[str, Any] = Field(default_factory=dict, description="Synthesized investigation report")
+    status: str = Field("completed", description="Investigation status (completed, unavailable, limit_reached)")
+    created_at: datetime = Field(..., description="Investigation run timestamp")
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+# Investigation collection indexes
+INVESTIGATION_INDEXES = [
+    [("investigation_id", 1)],  # Unique index
+    [("incident_id", 1)],       # Fast filtering by incident
+    [("created_at", -1)],       # Sort by newest first
 ]
 

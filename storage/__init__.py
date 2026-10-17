@@ -4,13 +4,15 @@ from storage.repositories import (
     EventRepository,
     AlertRepository,
     DetectionRepository,
-    IncidentRepository
+    IncidentRepository,
+    InvestigationRepository
 )
 from storage.models import (
     EventDocument,
     AlertDocument,
     DetectionDocument,
-    IncidentDocument
+    IncidentDocument,
+    InvestigationDocument
 )
 
 __all__ = [
@@ -20,8 +22,10 @@ __all__ = [
     "AlertRepository",
     "DetectionRepository",
     "IncidentRepository",
+    "InvestigationRepository",
     "EventDocument",
     "AlertDocument",
     "DetectionDocument",
     "IncidentDocument",
+    "InvestigationDocument",
 ]

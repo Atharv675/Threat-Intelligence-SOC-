@@ -1,0 +1,59 @@
+{
+  "id": "case_02",
+  "name": "DGA Domain C2 Beaconing",
+  "description": "Internal host querying algorithmically generated malicious domains",
+  "incident": {
+    "incident_id": "inc-eval-02",
+    "title": "Suspected DGA C2 Activity",
+    "description": "Endpoint generated high-entropy random domain queries",
+    "status": "In Progress",
+    "severity": "High",
+    "related_detections": [
+      "det-eval-02"
+    ],
+    "related_alerts": [],
+    "created_at": "2026-10-17T10:10:00Z"
+  },
+  "detections": [
+    {
+      "detection_id": "det-eval-02",
+      "log_type": "dns",
+      "matched_ioc": "xvz7q2mnd8k.biz",
+      "matched_field": "domain",
+      "ioc_source": "DGA ML Classifier",
+      "ioc_type": "dga",
+      "confidence": 0.98,
+      "mitre_techniques": [
+        "T1568.002"
+      ],
+      "rule_name": "DGA Domain Detected - ML Classifier (T1568.002)",
+      "log_event": {
+        "client_ip": "10.0.0.45",
+        "domain": "xvz7q2mnd8k.biz"
+      },
+      "timestamp": "2026-10-17T10:10:02Z"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "evt-eval-02",
+      "type": "domain",
+      "value": "xvz7q2mnd8k.biz",
+      "source": "DGA Classifier",
+      "risk_score": 9.2,
+      "mitre_techniques": [
+        "T1568.002"
+      ]
+    }
+  ],
+  "expected": {
+    "expected_entities": [
+      "xvz7q2mnd8k.biz",
+      "10.0.0.45"
+    ],
+    "expected_stage": "Command and Control",
+    "expected_techniques": [
+      "T1568.002"
+    ]
+  }
+}

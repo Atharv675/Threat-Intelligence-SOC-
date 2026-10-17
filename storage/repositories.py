@@ -4,7 +4,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo import ReplaceOne
 from storage.models import (
     EventDocument, AlertDocument, DetectionDocument, IncidentDocument,
-    EVENT_INDEXES, ALERT_INDEXES, DETECTION_INDEXES, INCIDENT_INDEXES
+    InvestigationDocument,
+    EVENT_INDEXES, ALERT_INDEXES, DETECTION_INDEXES, INCIDENT_INDEXES,
+    INVESTIGATION_INDEXES
 )
 from security.sanitizer import Sanitizer
 from utils.logger import get_logger
@@ -388,4 +390,87 @@ class IncidentRepository:
         if severity:
             query["severity"] = Sanitizer.sanitize_string(severity, max_length=20)
         return await self.collection.count_documents(query)
+
+    async def save_report(self, incident_id: str, report: Dict[str, Any]) -> bool:
+        """
+        Save an incident report to the incident document.
+        Does NOT alter incident severity, risk score, status, or any other fields.
+
+        Args:
+            incident_id: Incident ID
+            report: Generated report dictionary
+
+        Returns:
+            True if updated, False otherwise
+        """
+        incident_id = Sanitizer.sanitize_string(incident_id, max_length=100)
+        sanitized_report = Sanitizer.sanitize_dict(report) if isinstance(report, dict) else report
+
+        result = await self.collection.update_one(
+            {"incident_id": incident_id},
+            {"$set": {"report": sanitized_report, "updated_at": datetime.utcnow()}}
+        )
+        if result.modified_count > 0:
+            logger.info("incident_report_saved", incident_id=incident_id)
+            return True
+        return False
+
+    async def get_latest_report(self, incident_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the latest saved report for an incident.
+
+        Args:
+            incident_id: Incident ID
+
+        Returns:
+            Report dictionary or None
+        """
+        incident = await self.find_by_id(incident_id)
+        if not incident:
+            return None
+        return incident.get("report")
+
+
+class InvestigationRepository:
+    """Repository for investigations audit collection."""
+
+    COLLECTION_NAME = "investigations"
+
+    def __init__(self, db: AsyncIOMotorDatabase):
+        self.db = db
+        self.collection = db[self.COLLECTION_NAME]
+
+    async def create_indexes(self) -> None:
+        """Create collection indexes."""
+        for index in INVESTIGATION_INDEXES:
+            await self.collection.create_index(index)
+        logger.info("investigation_indexes_created")
+
+    async def insert_one(self, investigation: Dict[str, Any]) -> str:
+        """Insert a single investigation audit record."""
+        sanitized = Sanitizer.sanitize_dict(investigation) if isinstance(investigation, dict) else investigation
+        if "investigation_id" not in sanitized:
+            sanitized["investigation_id"] = str(uuid.uuid4())
+        await self.collection.insert_one(sanitized)
+        logger.info("investigation_inserted", investigation_id=sanitized["investigation_id"])
+        return sanitized["investigation_id"]
+
+    async def find_by_incident_id(
+        self,
+        incident_id: str,
+        skip: int = 0,
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Find investigations for a given incident."""
+        incident_id = Sanitizer.sanitize_string(incident_id, max_length=100)
+        cursor = self.collection.find(
+            {"incident_id": incident_id},
+            {"_id": 0}
+        ).sort("created_at", -1).skip(skip).limit(limit)
+        return await cursor.to_list(length=limit)
+
+    async def find_by_id(self, investigation_id: str) -> Optional[Dict[str, Any]]:
+        """Find investigation by ID."""
+        investigation_id = Sanitizer.sanitize_string(investigation_id, max_length=100)
+        return await self.collection.find_one({"investigation_id": investigation_id}, {"_id": 0})
 
