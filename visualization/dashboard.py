@@ -1,6 +1,9 @@
 """Dashboard FastAPI routes and rendering."""
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, Request
+# pyrefly: ignore [missing-import]
 from fastapi.responses import HTMLResponse, JSONResponse
+# pyrefly: ignore [missing-import]
 from fastapi.templating import Jinja2Templates
 from typing import Optional
 from datetime import datetime
@@ -92,6 +95,7 @@ async def get_all_incidents(status: Optional[str] = None, severity: Optional[str
     """Get incidents list for dashboard display."""
     try:
         from storage.repositories import IncidentRepository
+        # pyrefly: ignore [missing-import]
         from fastapi.encoders import jsonable_encoder
         inc_repo = IncidentRepository(db)
         incidents = await inc_repo.find_all(status=status, severity=severity, skip=0, limit=limit)

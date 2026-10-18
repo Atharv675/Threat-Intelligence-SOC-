@@ -43,7 +43,7 @@ SOC/
 │   ├── alienvault.py           # AlienVault OTX pulses
 │   ├── abusedb.py               # Abuse.ch
 │   └── openphish.py            # OpenPhish feed
-├── core/                       # Intelligence pipeline
+├── core/                       # Intelligence pipeline & agentic features
 │   ├── normalizer.py            # Raw source data -> NormalizedEvent
 │   ├── enrichment.py            # GeoIP / ASN / WHOIS enrichment
 │   ├── correlation.py           # Time-window based event correlation
@@ -51,15 +51,21 @@ SOC/
 │   ├── risk_scoring.py          # Weighted 0-10 risk score + severity
 │   ├── alert_generator.py       # Turns scored events into Alert objects
 │   ├── analyst_summary.py       # Human-readable summary generation
-│   └── incident_manager.py      # Incident create/update/notes lifecycle
+│   ├── incident_manager.py      # Incident create/update/notes lifecycle
+│   ├── incident_report.py       # Grounded LLM/template incident reporting
+│   ├── llm_client.py            # Multi-provider client (Ollama/OpenAI/Anthropic/Gemini)
+│   └── investigator/            # Read-only autonomous security investigator agent
+│       ├── agent.py             # Agent loop with hard safety bounds & evidence audit
+│       └── tools.py             # 7 allowlisted read-only tools with strict bounds
 ├── ingestion/                  # Log parsing and validation
 │   ├── log_parser.py            # Regex parsers for auth/nginx/dns log lines
 │   └── event_ingestor.py        # Parses + validates into Pydantic log models
 ├── detection/
-│   └── detection_engine.py      # IOC matching + stateful behavioral heuristics
+│   ├── detection_engine.py      # IOC matching + stateful behavioral heuristics
+│   └── dga_classifier.py        # ML feature extractor & lazy-loaded classifier
 ├── storage/                    # MongoDB access (Motor, async)
 │   ├── database.py               # Connection singleton, health check
-│   ├── models.py                 # Document models (Event/Alert/Detection/Incident)
+│   ├── models.py                 # Document models (Event/Alert/Detection/Incident/Investigation)
 │   └── repositories.py           # Repository pattern per collection
 ├── security/                   # Input validation, sanitization, rate limiting
 │   ├── validation.py             # Pydantic schemas (extra="forbid")
@@ -75,6 +81,14 @@ SOC/
 ├── utils/
 │   ├── config.py                  # Pydantic BaseSettings (reads .env)
 │   └── logger.py                  # structlog setup
+├── scripts/
+│   └── train_dga.py               # DGA ML dataset fetcher & model trainer
+├── tests/                         # Pytest suite & evaluation benchmark
+│   ├── eval/                      # 10 incident benchmark evaluation suite
+│   ├── test_dga_classifier.py
+│   ├── test_dga_detection.py
+│   ├── test_incident_report.py
+│   └── test_investigator.py       # Safety limits, immutability & isolation tests
 ├── demo.py                     # Stage 1 script: run the intel pipeline standalone
 ├── demo_soc.py                  # Stage 2 script: ingest logs, detect, create incident
 ├── requirements.txt
